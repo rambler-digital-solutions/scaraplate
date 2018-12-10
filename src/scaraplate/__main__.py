@@ -4,6 +4,7 @@ from scaraplate.rollup import rollup as _rollup
 
 
 @click.group()
+@click.version_option()
 def main():
     pass
 
