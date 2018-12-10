@@ -1,3 +1,4 @@
+import os
 import subprocess
 import tempfile
 from pathlib import Path
@@ -22,7 +23,11 @@ def init_git_and_commit(path: Path) -> None:
 
 
 def call_git(shell_cmd: str, cwd: Path) -> None:
-    env = {"USERNAME": "tests_scaraplate", "EMAIL": "pytest@scaraplate"}
+    env = {
+        "USERNAME": "tests_scaraplate",
+        "EMAIL": "pytest@scaraplate",
+        "PATH": os.getenv("PATH", os.defpath),
+    }
     subprocess.run(shell_cmd, shell=True, check=True, cwd=cwd, env=env, timeout=5)
 
 
