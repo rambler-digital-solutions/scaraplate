@@ -12,27 +12,27 @@ from scaraplate.strategies import TemplateHash
         (
             "hi!",
             None,
-            "hi!\n# scaraplate template "
+            "hi!\n# https://github.com/rambler-digital-solutions/scaraplate template "
             "commit hash: 1111111111111111111111111111111111111111\n",
         ),
         (
             "hi!",
             "ho!",
-            "hi!\n# scaraplate template "
+            "hi!\n# https://github.com/rambler-digital-solutions/scaraplate template "
             "commit hash: 1111111111111111111111111111111111111111\n",
         ),
         (
             "hi!",
-            "ho!\n# scaraplate template "
+            "ho!\n# https://github.com/rambler-digital-solutions/scaraplate template "
             "commit hash: 1111111111111111111111111111111111111111\n",
-            "ho!\n# scaraplate template "
+            "ho!\n# https://github.com/rambler-digital-solutions/scaraplate template "
             "commit hash: 1111111111111111111111111111111111111111\n",
         ),
         (
             "hi!",
-            "ho!\n# scaraplate template "
+            "ho!\n# https://github.com/rambler-digital-solutions/scaraplate template "
             "commit hash: 0000000000000000000000000000000000000000\n",
-            "hi!\n# scaraplate template "
+            "hi!\n# https://github.com/rambler-digital-solutions/scaraplate template "
             "commit hash: 1111111111111111111111111111111111111111\n",
         ),
     ],

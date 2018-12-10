@@ -26,9 +26,13 @@ class Overwrite(Strategy):
 
 
 class TemplateHash(Strategy):
+    line_comment_start = "#"
+
     def apply(self) -> BinaryIO:
         hash_comment = (
-            f"# scaraplate template commit hash: {self.template_commit_hash}\n"
+            f"{self.line_comment_start} "
+            f"https://github.com/rambler-digital-solutions/scaraplate template "
+            f"commit hash: {self.template_commit_hash}\n"
         ).encode("ascii")
         if self.target_contents is not None:
             target_text = self.target_contents.read()
