@@ -174,15 +174,16 @@ def apply_generated_project(
     generated_path = generated_path.resolve()
 
     for root, dirs, files in os.walk(generated_path):
-        root_path = Path(root)
-        path_from_template_root = root_path.relative_to(generated_path)
+        current_root_path = Path(root)
+        path_from_template_root = current_root_path.relative_to(generated_path)
         target_root_path = target_path / path_from_template_root
         target_root_path.mkdir(parents=True, exist_ok=True, mode=0o755)
+
         for d in dirs:
             (target_root_path / d).mkdir(parents=True, exist_ok=True, mode=0o755)
 
         for f in files:
-            file_path = root_path / f
+            file_path = current_root_path / f
             target_file_path = target_root_path / f
 
             strategy_cls = scaraplate_yaml.strategies_mapping.get(
@@ -205,6 +206,10 @@ def apply_generated_project(
 
             target_contents = strategy.apply()
             target_file_path.write_bytes(target_contents.read())
+
+            # https://stackoverflow.com/a/5337329
+            chmod = file_path.stat().st_mode & 0o777
+            target_file_path.chmod(chmod)
 
 
 def class_from_str(ref: str) -> Type[object]:

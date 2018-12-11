@@ -48,12 +48,14 @@ def test_rollup_fuzzy(tempdir_path, apply_count):
     (cookiecutter_path / "README.md").write_text(
         "{{ cookiecutter.project_dest }} mock!"
     )
+    (cookiecutter_path / "setup.py").write_text("#!/usr/bin/env python\n")
+    (cookiecutter_path / "setup.py").chmod(0o755)
     (template_path / "cookiecutter.json").write_text('{"project_dest": "test"}')
     (template_path / "scaraplate.yaml").write_text(
         """
 default_strategy: scaraplate.strategies.Overwrite
 strategies_mapping:
-  Jenkinsfile: scaraplate.strategies.TemplateHash
+  setup.py: scaraplate.strategies.TemplateHash
         """
     )
     init_git_and_commit(template_path)
@@ -67,6 +69,7 @@ strategies_mapping:
         )
 
         assert "test mock!" == (target_project_path / "README.md").read_text()
+        assert 0o755 == (0o777 & (target_project_path / "setup.py").stat().st_mode)
 
 
 def test_get_template_commit_hash_valid():
