@@ -1,7 +1,9 @@
 import abc
 import io
+from configparser import ConfigParser
 from typing import BinaryIO, Optional
 
+from .parsers import parser_to_pretty_output, pylintrc_parser
 from .template import TemplateMeta
 
 
@@ -84,5 +86,52 @@ class PythonTemplateHash(TemplateHash):
         return line
 
 
+class PylintrcMerge(Strategy):
+    """A strategy which merges `.pylintrc` between a template
+    and the target project.
+
+    The resulting `.pylintrc` is the one from the template with
+    the following modifications:
+    - Comments are stripped
+    - INI file is reformatted (whitespaces are cleaned, sections
+      and values are sorted)
+    - `ignored-*` keys of the `[TYPECHECK]` section are taken from
+      the target `.pylintrc`.
+    """
+
+    def apply(self) -> BinaryIO:
+        template_parser = pylintrc_parser(
+            self.template_contents, source=".pylintrc.template"
+        )
+
+        if self.target_contents is not None:
+            target_parser = pylintrc_parser(
+                self.target_contents, source=".pylintrc.target"
+            )
+            self._maybe_preserve_key(
+                template_parser, target_parser, "TYPECHECK", "ignored-modules"
+            )
+            self._maybe_preserve_key(
+                template_parser, target_parser, "TYPECHECK", "ignored-classes"
+            )
+
+        return parser_to_pretty_output(template_parser)
+
+    def _maybe_preserve_key(
+        self,
+        template_parser: ConfigParser,
+        target_parser: ConfigParser,
+        section: str,
+        key: str,
+    ) -> None:
+        try:
+            target = target_parser[section][key]
+        except KeyError:
+            # No such section/value in target -- keep the one that is
+            # in the template.
+            return
+        else:
+            template_parser[section][key] = target
+
+
 # XXX setup.cfg
-# XXX .pylintrc

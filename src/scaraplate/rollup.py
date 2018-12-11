@@ -10,7 +10,7 @@ import click
 import yaml
 from cookiecutter.main import cookiecutter
 
-from .parsers import parse_setup_cfg
+from .parsers import setup_cfg_parser_from_path
 from .strategies import Strategy
 from .template import TemplateMeta, get_template_meta_from_git
 
@@ -133,7 +133,7 @@ def get_target_project_cookiecutter_context(target_path: Path) -> Dict[str, str]
 
     click.echo("setup.cfg exists, parsing...")
     section = "tool:cookiecutter_context"
-    configparser = parse_setup_cfg(setup_cfg)
+    configparser = setup_cfg_parser_from_path(setup_cfg)
     context_configparser = dict(configparser).get(section)
     # ConfigParser section's pprint doesn't include contents.
     context = dict(context_configparser or {})

@@ -1,0 +1,69 @@
+strategy: PylintrcMerge
+
+testcases:
+  - name: non_existing_target
+    template: |
+      [MASTER]
+      # Specify a configuration file.
+      #rcfile=
+
+      persistent=yes
+      optimize-ast=no
+    target: null
+    is_git_dirty: False
+    # Comments are removed, keys are sorted
+    out: |
+      [MASTER]
+      optimize-ast = no
+      persistent = yes
+
+  - name: target_with_extraneous_sections
+    template: |
+      [MASTER]
+      # Specify a configuration file.
+      #rcfile=
+      persistent=yes
+      optimize-ast=no
+    target: |
+      [MASTER]
+      #rcfile=
+      optimize-ast=yes
+
+      [MESSAGES CONTROL]
+      confidence=
+    is_git_dirty: False
+    # Extraneous sections from target are removed
+    out: |
+      [MASTER]
+      optimize-ast = no
+      persistent = yes
+
+  - name: target_with_ignored_keys
+    template: |
+      [MASTER]
+      # Specify a configuration file.
+      #rcfile=
+      persistent=yes
+      optimize-ast=no
+
+      [TYPECHECK]
+      ignored-modules=aaa,bbb
+      ignored-classes=aaa,bbb
+    target: |
+      [MASTER]
+      #rcfile=
+      optimize-ast=yes
+      [TYPECHECK]
+      ignored-modules=ccc,bbb
+      ignored-classes=ccc,bbb
+    is_git_dirty: False
+    # `ignored-*` keys of the TYPECHECK section are preserved
+    out: |
+      [MASTER]
+      optimize-ast = no
+      persistent = yes
+
+      [TYPECHECK]
+      ignored-classes = ccc,bbb
+      ignored-modules = ccc,bbb
+
