@@ -2,7 +2,6 @@ import importlib
 import io
 import os
 import pprint
-import subprocess
 import tempfile
 from pathlib import Path
 from typing import BinaryIO, Dict, Mapping, NamedTuple, Optional, Type
@@ -13,6 +12,7 @@ from cookiecutter.main import cookiecutter
 
 from .parsers import parse_setup_cfg
 from .strategies import Strategy
+from .template import TemplateMeta, get_template_meta_from_git
 
 
 class ScaraplateYaml(NamedTuple):
@@ -24,7 +24,7 @@ def rollup(template_dir: str, target_project_dir: str, no_input: bool) -> None:
     template_path = Path(template_dir)
     target_path = Path(target_project_dir)
 
-    template_commit_hash = get_template_commit_hash(template_path)
+    template_meta = get_template_meta_from_git(template_path)
     scaraplate_yaml = get_scaraplate_yaml(template_path)
 
     target_path.mkdir(parents=True, exist_ok=True, mode=0o755)
@@ -94,28 +94,11 @@ replay_dir: "{cookiecutter_config_path / 'replay'}"
         apply_generated_project(
             output_dir / target_path.name,
             target_path,
-            template_commit_hash=template_commit_hash,
+            template_meta=template_meta,
             scaraplate_yaml=scaraplate_yaml,
         )
 
         click.echo("Done!")
-
-
-def get_template_commit_hash(template_path: Path) -> str:
-    try:
-        out = subprocess.run(
-            ["git", "rev-parse", "--verify", "HEAD"],
-            cwd=template_path,
-            stdout=subprocess.PIPE,
-            check=True,
-        )
-    except Exception:
-        raise RuntimeError(
-            "Unable to retrieve a commit hash of the template. "
-            "Ensure that it is a valid git repo."
-        )
-    else:
-        return out.stdout.decode().strip()
 
 
 def get_scaraplate_yaml(template_path: Path) -> ScaraplateYaml:
@@ -168,7 +151,7 @@ def apply_generated_project(
     generated_path: Path,
     target_path: Path,
     *,
-    template_commit_hash: str,
+    template_meta: TemplateMeta,
     scaraplate_yaml: ScaraplateYaml,
 ) -> None:
     generated_path = generated_path.resolve()
@@ -201,7 +184,7 @@ def apply_generated_project(
             strategy = strategy_cls(
                 target_contents=target_contents,
                 template_contents=template_contents,
-                template_commit_hash=template_commit_hash,
+                template_meta=template_meta,
             )
 
             target_contents = strategy.apply()

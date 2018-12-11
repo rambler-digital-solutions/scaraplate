@@ -1,6 +1,3 @@
-import os
-import subprocess
-import tempfile
 from pathlib import Path
 from typing import Dict, Optional
 
@@ -11,34 +8,12 @@ from scaraplate.rollup import (
     ScaraplateYaml,
     get_scaraplate_yaml,
     get_target_project_cookiecutter_context,
-    get_template_commit_hash,
     rollup,
 )
 
 
-def init_git_and_commit(path: Path) -> None:
-    call_git("git init", cwd=path)
-    call_git("git add --all .", cwd=path)
-    call_git('git commit -m "initial"', cwd=path)
-
-
-def call_git(shell_cmd: str, cwd: Path) -> None:
-    env = {
-        "USERNAME": "tests_scaraplate",
-        "EMAIL": "pytest@scaraplate",
-        "PATH": os.getenv("PATH", os.defpath),
-    }
-    subprocess.run(shell_cmd, shell=True, check=True, cwd=cwd, env=env, timeout=5)
-
-
-@pytest.fixture
-def tempdir_path():
-    with tempfile.TemporaryDirectory() as tempdir_path:
-        yield Path(tempdir_path).resolve()
-
-
 @pytest.mark.parametrize("apply_count", [1, 2])
-def test_rollup_fuzzy(tempdir_path, apply_count):
+def test_rollup_fuzzy(tempdir_path, apply_count, init_git_and_commit):
     template_path = tempdir_path / "template"
     target_project_path = tempdir_path / "test"
 
@@ -70,18 +45,6 @@ strategies_mapping:
 
         assert "test mock!" == (target_project_path / "README.md").read_text()
         assert 0o755 == (0o777 & (target_project_path / "setup.py").stat().st_mode)
-
-
-def test_get_template_commit_hash_valid():
-    # The current file is already in a git repo,
-    # so we can use it, can't we? :)
-    assert 40 == len(get_template_commit_hash(Path(__file__).parents[0]))
-
-
-def test_get_template_commit_hash_invalid(tempdir_path):
-    # tempdir_path is not under a git repo.
-    with pytest.raises(RuntimeError):
-        get_template_commit_hash(tempdir_path)
 
 
 def test_get_scaraplate_yaml_valid(tempdir_path: Path) -> None:
