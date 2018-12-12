@@ -1,0 +1,177 @@
+
+strategy: SetupcfgMerge
+
+testcases:
+  - name: non_existing_target
+    template: |
+      [metadata]
+      # Project name
+      version =
+      name=foo
+    target: null
+    is_git_dirty: False
+    # Comments are removed, keys are sorted
+    out: |
+      [metadata]
+      name = foo
+      version =
+
+      [options]
+      install_requires =
+
+      [options.extras_require]
+      develop =
+
+  - name: extraneous_sections
+    template: |
+      [metadata]
+      name=foo
+      version = 1
+      [isort]
+      atomic = true
+    target: |
+      [aliases]
+      test = pytest
+      [metadata]
+      name=foo
+      url = http://
+    is_git_dirty: False
+    out: |
+      [isort]
+      atomic = true
+
+      [metadata]
+      name = foo
+      version = 1
+
+      [options]
+      install_requires =
+
+      [options.extras_require]
+      develop =
+
+  - name: mypy_sections
+    template: |
+      [mypy]
+      a = 1
+      [mypy-aiohttp.*]
+      ignore_missing_imports = True
+      [mypy-pytest.*]
+      ignore_missing_imports = True
+    target: |
+      [mypy]
+      a = 2
+      b = 1
+      [mypy-packaging.*]
+      ignore_missing_imports = True
+      [mypy-pytest.*]
+      ignore_missing_imports = True
+      [aliases]
+      test = pytest
+    is_git_dirty: False
+    out: |
+      [mypy]
+      a = 1
+
+      [mypy-aiohttp.*]
+      ignore_missing_imports = True
+
+      [mypy-packaging.*]
+      ignore_missing_imports = True
+
+      [mypy-pytest.*]
+      ignore_missing_imports = True
+
+      [options]
+      install_requires =
+
+      [options.extras_require]
+      develop =
+
+  - name: requirements_update
+    template: |
+      [options]
+      install_requires =
+        Black
+        isort==4.3
+
+      [options.extras_require]
+      develop =
+        pytest
+    target: |
+      [options]
+      install_requires =
+        aiohttp==4.3
+        isorT==1.3
+
+      [options.extras_require]
+      develop =
+        flask
+      fast =
+        librabbitmq
+    is_git_dirty: False
+    out: |
+      [options]
+      install_requires =
+          aiohttp==4.3
+          Black
+          isorT==1.3
+
+      [options.extras_require]
+      develop =
+          flask
+          pytest
+      fast =
+          librabbitmq
+
+  - name: pytest_testpaths
+    template: |
+      [tool:pytest]
+      addopts =
+          --verbose
+          --showlocals
+    target: |
+      [tool:pytest]
+      addopts =
+          --verbose
+          --showlocals
+          --tb=short
+      testpaths =
+          tests/unit/
+          tests/integration/
+    is_git_dirty: False
+    out: |
+      [options]
+      install_requires =
+
+      [options.extras_require]
+      develop =
+
+      [tool:pytest]
+      addopts =
+          --verbose
+          --showlocals
+      testpaths =
+          tests/unit/
+          tests/integration/
+
+  - name: build_executable
+    template: |
+      [metadata]
+      name=foo
+    target: |
+      [build]
+      executable = /usr/bin/env python3.6
+    is_git_dirty: False
+    out: |
+      [build]
+      executable = /usr/bin/env python3.6
+
+      [metadata]
+      name = foo
+
+      [options]
+      install_requires =
+
+      [options.extras_require]
+      develop =

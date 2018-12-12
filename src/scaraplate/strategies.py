@@ -1,10 +1,23 @@
 import abc
 import io
+import re
 from configparser import ConfigParser
-from typing import BinaryIO, Optional
+from typing import Any, BinaryIO, List, Optional
 
-from .parsers import parser_to_pretty_output, pylintrc_parser
+from .parsers import (
+    dump_setupcfg_requirements,
+    parse_setupcfg_requirements,
+    parser_to_pretty_output,
+    pylintrc_parser,
+    requirement_name,
+    setup_cfg_parser,
+)
 from .template import TemplateMeta
+
+
+def _ensure_section(parser: ConfigParser, section: str) -> None:
+    if not parser.has_section(section):
+        parser.add_section(section)
 
 
 class Strategy(abc.ABC):
@@ -162,7 +175,131 @@ class PylintrcMerge(Strategy):
             # in the template.
             return
         else:
+            _ensure_section(template_parser, section)
             template_parser[section][key] = target
 
 
-# XXX setup.cfg
+class SetupcfgMerge(Strategy):
+    def apply(self) -> BinaryIO:
+        template_parser = setup_cfg_parser(
+            self.template_contents, source="setup.cfg.template"
+        )
+
+        target_parser = None
+
+        if self.target_contents is not None:
+            target_parser = setup_cfg_parser(
+                self.target_contents, source="setup.cfg.target"
+            )
+
+            self._maybe_preserve_sections(
+                template_parser, target_parser, re.compile("^mypy-")
+            )
+
+            self._maybe_preserve_sections(
+                template_parser, target_parser, re.compile("^options.entry_points$")
+            )
+
+            self._maybe_preserve_sections(
+                template_parser,
+                target_parser,
+                re.compile("^options.extras_require$"),
+                ignore_keys_pattern=re.compile("^develop$"),
+            )
+
+            self._maybe_preserve_key(
+                template_parser, target_parser, "tool:pytest", "testpaths"
+            )
+
+            # TODO verify if this is still relevant:
+            self._maybe_preserve_key(
+                template_parser, target_parser, "build", "executable"
+            )
+
+        self._merge_requirements(
+            template_parser, target_parser, "options.extras_require", "develop"
+        )
+
+        self._merge_requirements(
+            template_parser, target_parser, "options", "install_requires"
+        )
+
+        return parser_to_pretty_output(template_parser)
+
+    def _maybe_preserve_sections(
+        self,
+        template_parser: ConfigParser,
+        target_parser: ConfigParser,
+        sections_pattern: Any,  # re.Pattern since py3.7
+        ignore_keys_pattern: Any = None,
+    ) -> None:
+        for section in target_parser.sections():  # default section is ignored
+            if sections_pattern.match(section):
+                section_data = dict(target_parser[section])
+
+                if ignore_keys_pattern is not None:
+                    for key, value in template_parser[section].items():
+                        if ignore_keys_pattern.match(key):
+                            section_data[key] = value
+
+                template_parser[section] = section_data
+
+    def _merge_requirements(
+        self,
+        template_parser: ConfigParser,
+        target_parser: Optional[ConfigParser],
+        section: str,
+        key: str,
+    ) -> None:
+        "Merge in the requirements from template to the target."
+
+        template_requirements = self._parse_requirements(template_parser, section, key)
+        if target_parser is not None:
+            target_requirements = self._parse_requirements(target_parser, section, key)
+        else:
+            target_requirements = []
+
+        def normalize_requirement(requirement):
+            return requirement_name(requirement).lower()
+
+        existing_requirement_names = set(
+            map(normalize_requirement, target_requirements)
+        )
+        wanted_requirements = target_requirements
+
+        for requirement in template_requirements:
+            name = normalize_requirement(requirement)
+            if name not in existing_requirement_names:
+                wanted_requirements.append(requirement)
+
+        wanted_requirements = sorted(wanted_requirements, key=str.casefold)
+
+        _ensure_section(template_parser, section)
+        template_parser[section][key] = dump_setupcfg_requirements(wanted_requirements)
+
+    def _parse_requirements(
+        self, parser: ConfigParser, section: str, key: str
+    ) -> List[str]:
+        try:
+            requirements = parser[section][key]
+        except KeyError:
+            return []
+
+        return parse_setupcfg_requirements(requirements)
+
+    def _maybe_preserve_key(
+        self,
+        template_parser: ConfigParser,
+        target_parser: ConfigParser,
+        section: str,
+        key: str,
+    ) -> None:
+        try:
+            target = target_parser[section][key]
+        except KeyError:
+            # No such section/value in target -- keep the one that is
+            # in the template.
+            return
+        else:
+            _ensure_section(template_parser, section)
+            template_parser[section][key] = target

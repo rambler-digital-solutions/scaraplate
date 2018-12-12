@@ -2,7 +2,9 @@ import io
 from collections import OrderedDict
 from configparser import ConfigParser
 from pathlib import Path
-from typing import BinaryIO
+from typing import BinaryIO, Iterable, List
+
+from packaging.requirements import Requirement
 
 
 def setup_cfg_parser_from_path(setup_cfg_path: Path) -> ConfigParser:
@@ -13,6 +15,13 @@ def setup_cfg_parser_from_path(setup_cfg_path: Path) -> ConfigParser:
 
 
 def pylintrc_parser(data: BinaryIO, source: str) -> ConfigParser:
+    parser = ConfigParser()
+    text = data.read().decode()
+    parser.read_string(text, source=source)
+    return parser
+
+
+def setup_cfg_parser(data: BinaryIO, source: str) -> ConfigParser:
     parser = ConfigParser()
     text = data.read().decode()
     parser.read_string(text, source=source)
@@ -42,3 +51,24 @@ def _sorted_configparser(parser: ConfigParser) -> ConfigParser:
 
     out._sections = OrderedDict(sorted(out._sections.items()))  # type: ignore
     return out
+
+
+def requirement_name(full_requirement: str) -> str:
+    requirement = Requirement(full_requirement)
+    return requirement.name
+
+
+def parse_setupcfg_requirements(requirements: str) -> List[str]:
+    return [r for r in map(str.strip, requirements.split()) if r]
+
+
+def dump_setupcfg_requirements(requirements: Iterable[str]) -> str:
+    # Leave first element empty to produce nicer cfg lists like:
+    #   install_requires =
+    #       foo==1.0.0
+    #       bar==2.0.0
+    # instead of
+    #   install_requires = foo==1.0.0
+    #       bar==2.0.0
+    acc = [""] + [item for item in requirements]
+    return "\n".join(acc)
