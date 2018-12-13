@@ -1,0 +1,20 @@
+
+strategy: IfMissing
+
+testcases:
+  - name: non_existing_target
+    template: |
+      from template!
+    target: null
+    is_git_dirty: False
+    out: |
+      from template!
+
+  - name: existing_target
+    template: |
+      from template!
+    target: |
+      from target!
+    is_git_dirty: False
+    out: |
+      from target!

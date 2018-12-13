@@ -33,6 +33,18 @@ class Overwrite(Strategy):
         return self.template_contents
 
 
+class IfMissing(Strategy):
+    """A strategy which writes the file from the template only
+    if it doesn't exist in target.
+    """
+
+    def apply(self) -> BinaryIO:
+        if self.target_contents is None:
+            return self.template_contents
+        else:
+            return self.target_contents
+
+
 class TemplateHash(Strategy):
     """A strategy which appends to the target file a git commit hash of
     the template being applied; and the subsequent applications of
