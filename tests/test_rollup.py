@@ -1,3 +1,5 @@
+import contextlib
+import os
 from pathlib import Path
 from typing import Dict, Optional
 
@@ -6,10 +8,21 @@ import pytest
 import scaraplate.strategies
 from scaraplate.rollup import (
     ScaraplateYaml,
+    get_project_dest,
     get_scaraplate_yaml,
     get_target_project_cookiecutter_context,
     rollup,
 )
+
+
+@contextlib.contextmanager
+def with_working_directory(target_dir: Path):
+    cur = os.getcwd()
+    os.chdir(target_dir)
+    try:
+        yield
+    finally:
+        os.chdir(cur)
 
 
 @pytest.mark.parametrize("apply_count", [1, 2])
@@ -45,6 +58,16 @@ strategies_mapping:
 
         assert "test mock!" == (target_project_path / "README.md").read_text()
         assert 0o755 == (0o777 & (target_project_path / "setup.py").stat().st_mode)
+
+
+def test_get_project_dest(tempdir_path: Path) -> None:
+    target = tempdir_path / "myproject"
+    with with_working_directory(tempdir_path):
+        assert "myproject" == get_project_dest(Path("myproject"))
+
+    target.mkdir()
+    with with_working_directory(target):
+        assert "myproject" == get_project_dest(Path("."))
 
 
 def test_get_scaraplate_yaml_valid(tempdir_path: Path) -> None:
