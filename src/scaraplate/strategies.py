@@ -45,6 +45,25 @@ class IfMissing(Strategy):
             return self.target_contents
 
 
+class SortedUniqueLines(Strategy):
+    """A strategy which combines both template and target files,
+    sorts the combined lines and keeps only unique ones.
+    """
+
+    def apply(self) -> BinaryIO:
+        out_lines = self.template_contents.read().decode().splitlines()
+        if self.target_contents is not None:
+            out_lines.extend(self.target_contents.read().decode().splitlines())
+
+        # Keep unique lines and sort them
+        out_lines = sorted(set(out_lines), key=str.casefold)
+
+        out_lines = [line for line in out_lines if line]
+        out_lines.append("")  # trailing newline
+
+        return io.BytesIO("\n".join(out_lines).encode())
+
+
 class TemplateHash(Strategy):
     """A strategy which appends to the target file a git commit hash of
     the template being applied; and the subsequent applications of

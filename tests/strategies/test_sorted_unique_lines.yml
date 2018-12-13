@@ -1,0 +1,32 @@
+
+strategy: SortedUniqueLines
+
+testcases:
+  - name: non_existing_target
+    template: |
+      zz с юникодом
+      Py тон
+      pysomething
+      # comment
+      graft
+    target: null
+    is_git_dirty: False
+    out: |
+      # comment
+      graft
+      Py тон
+      pysomething
+      zz с юникодом
+
+  - name: existing_target
+    template: |
+      include b
+      graft a
+    target: |
+      include c
+      graft a
+    is_git_dirty: False
+    out: |
+      graft a
+      include b
+      include c
