@@ -1,10 +1,11 @@
+import contextlib
 import importlib
 import io
 import os
 import pprint
 import tempfile
 from pathlib import Path
-from typing import BinaryIO, Dict, Mapping, NamedTuple, Optional, Type
+from typing import BinaryIO, Dict, Mapping, NamedTuple, Optional, Type, Union
 
 import click
 import yaml
@@ -15,12 +16,17 @@ from .strategies import Strategy
 from .template import TemplateMeta, get_template_meta_from_git
 
 
+__all__ = ("rollup",)
+
+
 class ScaraplateYaml(NamedTuple):
     default_strategy: Type[Strategy]
     strategies_mapping: Mapping[str, Type[Strategy]]
 
 
-def rollup(template_dir: str, target_project_dir: str, no_input: bool) -> None:
+def rollup(
+    template_dir: Union[Path, str], target_project_dir: Union[Path, str], no_input: bool
+) -> None:
     template_path = Path(template_dir)
     target_path = Path(target_project_dir)
 
@@ -56,13 +62,28 @@ replay_dir: "{cookiecutter_config_path / 'replay'}"
 
         extra_context.setdefault("project_dest", project_dest)
 
-        cookiecutter(
-            str(template_path),
-            no_input=no_input,
-            extra_context=extra_context,
-            output_dir=str(output_dir),
-            config_file=str(cookiecutter_config),
-        )
+        template_root_path = template_path.parents[0]
+
+        with with_cwd(template_root_path):
+            # Cookiecutter preserves its template values to
+            # setup.cfg (this is specified in the template).
+            #
+            # These values contain a `_template` key, which points to
+            # the template just like it was passed to cookiecutter
+            # (that is the first positional arg in the command below).
+            #
+            # In order to specify only the directory name of the template,
+            # we change cwd (current working directory) and pass
+            # the path to template as just a directory name, effectively
+            # stripping off the path to the template in the local
+            # filesystem.
+            cookiecutter(
+                str(template_path.relative_to(template_root_path)),
+                no_input=no_input,
+                extra_context=extra_context,
+                output_dir=str(output_dir.resolve()),
+                config_file=str(cookiecutter_config),
+            )
 
         # Say the `target_path` looks like `/some/path/to/myproject`.
         #
@@ -204,3 +225,13 @@ def class_from_str(ref: str) -> Type[object]:
     module_s, cls_s = ref.rsplit(".", 1)
     module = importlib.import_module(module_s)
     return getattr(module, cls_s)
+
+
+@contextlib.contextmanager
+def with_cwd(cwd: Path):
+    initial_cwd = os.getcwd()
+    try:
+        os.chdir(cwd)
+        yield
+    finally:
+        os.chdir(initial_cwd)

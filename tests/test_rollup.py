@@ -1,4 +1,5 @@
 import contextlib
+import json
 import os
 from pathlib import Path
 from typing import Dict, Optional
@@ -38,6 +39,7 @@ def test_rollup_fuzzy(tempdir_path, apply_count, init_git_and_commit):
     )
     (cookiecutter_path / "setup.py").write_text("#!/usr/bin/env python\n")
     (cookiecutter_path / "setup.py").chmod(0o755)
+    (cookiecutter_path / "sense_vars").write_text("{{ cookiecutter|jsonify }}\n")
     (template_path / "cookiecutter.json").write_text('{"project_dest": "test"}')
     (template_path / "scaraplate.yaml").write_text(
         """
@@ -58,6 +60,14 @@ strategies_mapping:
 
         assert "test mock!" == (target_project_path / "README.md").read_text()
         assert 0o755 == (0o777 & (target_project_path / "setup.py").stat().st_mode)
+
+        with open((target_project_path / "sense_vars"), "rt") as f:
+            assert json.load(f) == {
+                # fmt: off
+                "_template": "template",
+                "project_dest": "test",
+                # fmt: on
+            }
 
 
 def test_get_project_dest(tempdir_path: Path) -> None:
