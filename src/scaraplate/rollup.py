@@ -1,4 +1,5 @@
 import contextlib
+import fnmatch
 import importlib
 import io
 import os
@@ -195,9 +196,7 @@ def apply_generated_project(
             file_path = current_root_path / f
             target_file_path = target_root_path / f
 
-            strategy_cls = scaraplate_yaml.strategies_mapping.get(
-                str(path_from_template_root / f), scaraplate_yaml.default_strategy
-            )
+            strategy_cls = get_strategy(scaraplate_yaml, path_from_template_root / f)
 
             template_contents = io.BytesIO(file_path.read_bytes())
             if target_file_path.exists():
@@ -219,6 +218,15 @@ def apply_generated_project(
             # https://stackoverflow.com/a/5337329
             chmod = file_path.stat().st_mode & 0o777
             target_file_path.chmod(chmod)
+
+
+def get_strategy(scaraplate_yaml: ScaraplateYaml, path: Path) -> Type[Strategy]:
+    for glob_pattern, strategy_cls in sorted(
+        scaraplate_yaml.strategies_mapping.items()
+    ):
+        if fnmatch.fnmatch(str(path), glob_pattern):
+            return strategy_cls
+    return scaraplate_yaml.default_strategy
 
 
 def class_from_str(ref: str) -> Type[object]:

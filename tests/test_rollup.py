@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 from typing import Dict, Optional
+from unittest.mock import sentinel
 
 import pytest
 
@@ -11,6 +12,7 @@ from scaraplate.rollup import (
     ScaraplateYaml,
     get_project_dest,
     get_scaraplate_yaml,
+    get_strategy,
     get_target_project_cookiecutter_context,
     rollup,
 )
@@ -160,3 +162,23 @@ def test_get_target_project_cookiecutter_context(
         (tempdir_path / "setup.cfg").write_text(setup_cfg_text)
 
     assert expected_context == get_target_project_cookiecutter_context(tempdir_path)
+
+
+def test_get_strategy():
+    scaraplate_yaml = ScaraplateYaml(
+        default_strategy=sentinel.default,
+        strategies_mapping={
+            "Jenkinsfile": sentinel.jenkinsfile,
+            "some/nested/setup.py": sentinel.nested_setup_py,
+            "src/*/__init__.py": sentinel.glob_init,
+        },
+    )
+
+    assert sentinel.default is get_strategy(scaraplate_yaml, Path("readme"))
+    assert sentinel.jenkinsfile is get_strategy(scaraplate_yaml, Path("Jenkinsfile"))
+    assert sentinel.nested_setup_py is get_strategy(
+        scaraplate_yaml, Path("some/nested/setup.py")
+    )
+    assert sentinel.glob_init is get_strategy(
+        scaraplate_yaml, Path("src/my_project/__init__.py")
+    )
