@@ -14,6 +14,7 @@ from scaraplate.rollup import (
     get_scaraplate_yaml,
     get_strategy,
     get_target_project_cookiecutter_context,
+    get_template_root_and_dir,
     rollup,
 )
 
@@ -80,6 +81,22 @@ def test_get_project_dest(tempdir_path: Path) -> None:
     target.mkdir()
     with with_working_directory(target):
         assert "myproject" == get_project_dest(Path("."))
+
+
+def test_get_template_root_and_dir(tempdir_path: Path) -> None:
+    target = tempdir_path / "myproject"
+    target.mkdir()
+
+    with with_working_directory(tempdir_path):
+        assert (tempdir_path, "myproject") == get_template_root_and_dir(
+            Path("myproject")
+        )
+        assert (tempdir_path, "myproject") == get_template_root_and_dir(
+            tempdir_path / "myproject"
+        )
+
+    with with_working_directory(target):
+        assert (tempdir_path, "myproject") == get_template_root_and_dir(Path("."))
 
 
 def test_get_scaraplate_yaml_valid(tempdir_path: Path) -> None:

@@ -6,7 +6,7 @@ import os
 import pprint
 import tempfile
 from pathlib import Path
-from typing import BinaryIO, Dict, Mapping, NamedTuple, Optional, Type, Union
+from typing import BinaryIO, Dict, Mapping, NamedTuple, Optional, Tuple, Type, Union
 
 import click
 import yaml
@@ -63,7 +63,7 @@ replay_dir: "{cookiecutter_config_path / 'replay'}"
 
         extra_context.setdefault("project_dest", project_dest)
 
-        template_root_path = template_path.parents[0]
+        template_root_path, template_dir_name = get_template_root_and_dir(template_path)
 
         with with_cwd(template_root_path):
             # Cookiecutter preserves its template values to
@@ -79,7 +79,7 @@ replay_dir: "{cookiecutter_config_path / 'replay'}"
             # stripping off the path to the template in the local
             # filesystem.
             cookiecutter(
-                str(template_path.relative_to(template_root_path)),
+                template_dir_name,
                 no_input=no_input,
                 extra_context=extra_context,
                 output_dir=str(output_dir.resolve()),
@@ -126,6 +126,13 @@ replay_dir: "{cookiecutter_config_path / 'replay'}"
 
 def get_project_dest(target_dir_path: Path) -> str:
     return target_dir_path.resolve().name
+
+
+def get_template_root_and_dir(template_path: Path) -> Tuple[Path, str]:
+    template_resolved_path = template_path.resolve()
+    template_root_path = template_resolved_path.parents[0]
+    template_dir_name = template_resolved_path.name
+    return template_root_path, template_dir_name
 
 
 def get_scaraplate_yaml(template_path: Path) -> ScaraplateYaml:
