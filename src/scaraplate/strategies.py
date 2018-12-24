@@ -197,6 +197,10 @@ class SetupcfgMerge(Strategy):
             )
 
             self._maybe_preserve_sections(
+                template_parser, target_parser, re.compile("^options.data_files$")
+            )
+
+            self._maybe_preserve_sections(
                 template_parser, target_parser, re.compile("^options.entry_points$")
             )
 
