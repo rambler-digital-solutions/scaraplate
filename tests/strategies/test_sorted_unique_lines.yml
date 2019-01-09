@@ -30,3 +30,23 @@ testcases:
       graft a
       include b
       include c
+
+  - name: same_case_a
+    template: |
+      env/
+    target: |
+      ENV/
+    is_git_dirty: False
+    out: |
+      ENV/
+      env/
+
+  - name: same_case_b
+    template: |
+      ENV/
+    target: |
+      env/
+    is_git_dirty: False
+    out: |
+      ENV/
+      env/

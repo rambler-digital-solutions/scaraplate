@@ -68,8 +68,13 @@ class SortedUniqueLines(Strategy):
         if self.target_contents is not None:
             out_lines.extend(self.target_contents.read().decode().splitlines())
 
-        # Keep unique lines and sort them
-        out_lines = sorted(set(out_lines), key=str.casefold)
+        # Keep unique lines and sort them.
+        #
+        # Note that `set` is not guaranteed to preserve the original
+        # order, so we need to compare by both casefolded str and
+        # the original to ensure the stable order for the same strings
+        # written in different cases.
+        out_lines = sorted(set(out_lines), key=lambda s: (s.casefold(), s))
 
         out_lines = [line for line in out_lines if line]
         out_lines.append("")  # trailing newline
