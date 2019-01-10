@@ -1,54 +1,100 @@
-*.py[cod]
-
 # C extensions
-*.so
-
+# Idea
+# Installer logs
+# Misc tools
+# Mr Developer
 # Packages
-.cache
+# Project specifics
+# Sphinx docs
+# Translations
+# Unit test / coverage reports
+*$py.class
+*.cover
 *.egg
 *.egg-info
-dist
-build
-eggs
-parts
-bin
-var
-sdist
-develop-eggs
-.installed.cfg
-lib
-lib64
-
-# Installer logs
-pip-log.txt
-
-# Unit test / coverage reports
-.coverage
-.tox
-nosetests.xml
-unittests.xml
-cover/
-htmlcov/
-
-# Translations
+*.egg-info/
+*.log
+*.manifest
 *.mo
-
-# Mr Developer
+*.pot
+*.py[cod]
+*.sage.py
+*.so
+*.spec
+.cache
+.coverage
+.coverage.*
+.dmypy.json
+.eggs/
+.env
+.hypothesis/
+.idea
+.installed.cfg
+.ipynb_checkpoints
 .mr.developer.cfg
+.mypy_cache/
+.nox/
 .project
 .pydevproject
-
-# Idea
-.idea
-
-# Sphinx docs
-docs/_build
-
-# Project specifics
-venv
-VERSION
-
-# Misc tools
-.hypothesis/
-.mypy_cache/
+.pyre/
 .pytest_cache/
+.Python
+.python-version
+.ropeproject
+.scrapy
+.spyderproject
+.spyproject
+.tox
+.tox/
+.venv
+.webassets-cache
+/site
+__pycache__/
+bin
+build
+build/
+celerybeat-schedule
+cover/
+coverage.xml
+db.sqlite3
+develop-eggs
+develop-eggs/
+dist
+dist/
+dmypy.json
+docs/_build
+docs/_build/
+downloads/
+eggs
+eggs/
+env.bak/
+env/
+ENV/
+htmlcov/
+instance/
+ipython_config.py
+junit.xml
+lib
+lib/
+lib64
+lib64/
+local_settings.py
+MANIFEST
+nosetests.xml
+parts
+parts/
+pip-delete-this-directory.txt
+pip-log.txt
+profile_default/
+sdist
+sdist/
+share/python-wheels/
+target/
+unittests.xml
+var
+var/
+venv
+venv.bak/
+venv/
+VERSION
+wheels/
