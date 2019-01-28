@@ -135,6 +135,15 @@ class PythonTemplateHash(TemplateHash):
         return line
 
 
+class GroovyTemplateHash(TemplateHash):
+    """TemplateHash strategy for Groovy files. Actually, it may be applied to any
+    languages which uses ``//``-style commentaries, but so far Groovy is the only user
+    of this.
+    """
+
+    line_comment_start = "//"
+
+
 class PylintrcMerge(Strategy):
     """A strategy which merges `.pylintrc` between a template
     and the target project.
