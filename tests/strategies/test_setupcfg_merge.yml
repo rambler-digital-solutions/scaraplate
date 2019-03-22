@@ -175,3 +175,32 @@ testcases:
 
       [options.extras_require]
       develop =
+
+  - name: freebsd
+    template: |
+      [metadata]
+      name=foo
+    target: |
+      [build]
+      executable = /usr/bin/env python3.6
+
+      [freebsd]
+      user = nobody
+      group = nobody
+    is_git_dirty: False
+    out: |
+      [build]
+      executable = /usr/bin/env python3.6
+
+      [freebsd]
+      group = nobody
+      user = nobody
+
+      [metadata]
+      name = foo
+
+      [options]
+      install_requires =
+
+      [options.extras_require]
+      develop =
