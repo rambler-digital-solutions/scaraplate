@@ -214,6 +214,13 @@ class SetupcfgMerge(Strategy):
             )
 
             self._maybe_preserve_sections(
+                template_parser,
+                target_parser,
+                # A non-standard section
+                re.compile("^infra.dependencies_updater$"),
+            )
+
+            self._maybe_preserve_sections(
                 template_parser, target_parser, re.compile("^mypy-")
             )
 

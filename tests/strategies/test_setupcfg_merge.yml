@@ -204,3 +204,32 @@ testcases:
 
       [options.extras_require]
       develop =
+
+  - name: infra.dependencies_updater
+    template: |
+      [metadata]
+      name=foo
+    target: |
+      [build]
+      executable = /usr/bin/env python3.6
+
+      [infra.dependencies_updater]
+      pinned =
+        xgboost==0.6
+    is_git_dirty: False
+    out: |
+      [build]
+      executable = /usr/bin/env python3.6
+
+      [infra.dependencies_updater]
+      pinned =
+          xgboost==0.6
+
+      [metadata]
+      name = foo
+
+      [options]
+      install_requires =
+
+      [options.extras_require]
+      develop =
