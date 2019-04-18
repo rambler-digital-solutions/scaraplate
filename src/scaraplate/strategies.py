@@ -167,6 +167,9 @@ class PylintrcMerge(Strategy):
                 self.target_contents, source=".pylintrc.target"
             )
             self._maybe_preserve_key(
+                template_parser, target_parser, "MASTER", "extension-pkg-whitelist"
+            )
+            self._maybe_preserve_key(
                 template_parser, target_parser, "TYPECHECK", "ignored-modules"
             )
             self._maybe_preserve_key(

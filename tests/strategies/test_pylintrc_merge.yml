@@ -67,3 +67,14 @@ testcases:
       ignored-classes = ccc,bbb
       ignored-modules = ccc,bbb
 
+  - name: target_containing_extra_ext_whitelist
+    template: |
+      [MASTER]
+      extension-pkg-whitelist=numpy,ujson
+    target: |
+      [MASTER]
+      extension-pkg-whitelist=ujson,lxml
+    is_git_dirty: False
+    out: |
+      [MASTER]
+      extension-pkg-whitelist = ujson,lxml
