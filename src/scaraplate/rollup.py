@@ -1,28 +1,22 @@
 import contextlib
 import fnmatch
-import importlib
 import io
 import os
 import pprint
 import tempfile
 from pathlib import Path
-from typing import BinaryIO, Dict, Mapping, NamedTuple, Optional, Tuple, Type, Union
+from typing import BinaryIO, Dict, Optional, Tuple, Type, Union
 
 import click
-import yaml
 from cookiecutter.main import cookiecutter
 
+from .config import ScaraplateYaml, get_scaraplate_yaml
 from .parsers import setup_cfg_parser_from_path
 from .strategies import Strategy
 from .template import TemplateMeta, get_template_meta_from_git
 
 
 __all__ = ("rollup",)
-
-
-class ScaraplateYaml(NamedTuple):
-    default_strategy: Type[Strategy]
-    strategies_mapping: Mapping[str, Type[Strategy]]
 
 
 def rollup(
@@ -135,30 +129,6 @@ def get_template_root_and_dir(template_path: Path) -> Tuple[Path, str]:
     return template_root_path, template_dir_name
 
 
-def get_scaraplate_yaml(template_path: Path) -> ScaraplateYaml:
-    config = yaml.safe_load((template_path / "scaraplate.yaml").read_text())
-    default_strategy = class_from_str(config["default_strategy"])
-    if not issubclass(default_strategy, Strategy) or default_strategy == Strategy:
-        raise RuntimeError(
-            f"`{default_strategy}` is not a subclass of "
-            f"`scaraplate.strategies.Strategy`"
-        )
-
-    strategies_mapping: Dict[str, Type[Strategy]] = {  # type: ignore
-        str(path): class_from_str(ref)
-        for path, ref in config["strategies_mapping"].items()
-    }
-    for cls in strategies_mapping.values():
-        if not issubclass(cls, Strategy) or default_strategy == Strategy:
-            raise RuntimeError(
-                f"`{default_strategy}` is not a subclass of "
-                f"`scaraplate.strategies.Strategy`"
-            )
-    return ScaraplateYaml(
-        default_strategy=default_strategy, strategies_mapping=strategies_mapping
-    )
-
-
 def get_target_project_cookiecutter_context(target_path: Path) -> Dict[str, str]:
     setup_cfg = target_path / "setup.cfg"
     if not setup_cfg.exists():
@@ -234,12 +204,6 @@ def get_strategy(scaraplate_yaml: ScaraplateYaml, path: Path) -> Type[Strategy]:
         if fnmatch.fnmatch(str(path), glob_pattern):
             return strategy_cls
     return scaraplate_yaml.default_strategy
-
-
-def class_from_str(ref: str) -> Type[object]:
-    module_s, cls_s = ref.rsplit(".", 1)
-    module = importlib.import_module(module_s)
-    return getattr(module, cls_s)
 
 
 @contextlib.contextmanager
