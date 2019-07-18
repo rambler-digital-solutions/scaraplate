@@ -2,7 +2,7 @@ import abc
 import io
 import re
 from configparser import ConfigParser
-from typing import Any, BinaryIO, List, Optional
+from typing import Any, BinaryIO, Dict, List, Optional
 
 from .parsers import (
     dump_setupcfg_requirements,
@@ -27,10 +27,12 @@ class Strategy(abc.ABC):
         target_contents: Optional[BinaryIO],
         template_contents: BinaryIO,
         template_meta: TemplateMeta,
+        config: Dict[str, Any],
     ) -> None:
         self.target_contents = target_contents
         self.template_contents = template_contents
         self.template_meta = template_meta
+        self.config = config
 
     @abc.abstractmethod
     def apply(self) -> BinaryIO:

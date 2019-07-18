@@ -70,6 +70,7 @@ def run_strategy_test(
             ),
             is_git_dirty=is_git_dirty,
         ),
+        config={},
     )
 
     assert out == strategy.apply().read().decode()

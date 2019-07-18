@@ -5,14 +5,13 @@ import os
 import pprint
 import tempfile
 from pathlib import Path
-from typing import BinaryIO, Dict, Optional, Tuple, Type, Union
+from typing import BinaryIO, Dict, Optional, Tuple, Union
 
 import click
 from cookiecutter.main import cookiecutter
 
-from .config import ScaraplateYaml, get_scaraplate_yaml
+from .config import ScaraplateYaml, StrategyNode, get_scaraplate_yaml
 from .parsers import setup_cfg_parser_from_path
-from .strategies import Strategy
 from .template import TemplateMeta, get_template_meta_from_git
 
 
@@ -173,7 +172,7 @@ def apply_generated_project(
             file_path = current_root_path / f
             target_file_path = target_root_path / f
 
-            strategy_cls = get_strategy(scaraplate_yaml, path_from_template_root / f)
+            strategy_node = get_strategy(scaraplate_yaml, path_from_template_root / f)
 
             template_contents = io.BytesIO(file_path.read_bytes())
             if target_file_path.exists():
@@ -183,10 +182,11 @@ def apply_generated_project(
             else:
                 target_contents = None
 
-            strategy = strategy_cls(
+            strategy = strategy_node.strategy(
                 target_contents=target_contents,
                 template_contents=template_contents,
                 template_meta=template_meta,
+                config=strategy_node.config,
             )
 
             target_contents = strategy.apply()
@@ -197,12 +197,12 @@ def apply_generated_project(
             target_file_path.chmod(chmod)
 
 
-def get_strategy(scaraplate_yaml: ScaraplateYaml, path: Path) -> Type[Strategy]:
-    for glob_pattern, strategy_cls in sorted(
+def get_strategy(scaraplate_yaml: ScaraplateYaml, path: Path) -> StrategyNode:
+    for glob_pattern, strategy_node in sorted(
         scaraplate_yaml.strategies_mapping.items()
     ):
         if fnmatch.fnmatch(str(path), glob_pattern):
-            return strategy_cls
+            return strategy_node
     return scaraplate_yaml.default_strategy
 
 
