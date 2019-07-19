@@ -24,8 +24,10 @@ def rollup(
     template_path = Path(template_dir)
     target_path = Path(target_project_dir)
 
-    template_meta = get_template_meta_from_git(template_path)
     scaraplate_yaml = get_scaraplate_yaml(template_path)
+    template_meta = get_template_meta_from_git(
+        template_path, git_remote_type=scaraplate_yaml.git_remote_type
+    )
 
     target_path.mkdir(parents=True, exist_ok=True, mode=0o755)
     project_dest = get_project_dest(target_path)

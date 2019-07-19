@@ -20,7 +20,8 @@ def init_git_and_commit(call_git):
         call_git('git commit -m "initial"', cwd=path)
         if with_remote:
             call_git(
-                "git remote add origin https://localhost/nonexisting/repo.git", cwd=path
+                "git remote add origin https://gitlab.localhost/nonexisting/repo.git",
+                cwd=path,
             )
 
     return _init_git_and_commit

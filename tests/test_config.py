@@ -4,6 +4,7 @@ import pytest
 
 import scaraplate.strategies
 from scaraplate.config import ScaraplateYaml, StrategyNode, get_scaraplate_yaml
+from scaraplate.gitremotes import GitHub
 
 
 @pytest.mark.parametrize(
@@ -28,6 +29,7 @@ strategies_mapping:
                         strategy=scaraplate.strategies.TemplateHash, config={}
                     ),
                 },
+                git_remote_type=None,
             ),
         ),
         (
@@ -58,6 +60,26 @@ strategies_mapping:
                         config={"some_key": True},
                     ),
                 },
+                git_remote_type=None,
+            ),
+        ),
+        (
+            """
+git_remote_type: scaraplate.gitremotes.GitHub
+default_strategy: scaraplate.strategies.Overwrite
+strategies_mapping:
+  Jenkinsfile: scaraplate.strategies.TemplateHash
+""",
+            ScaraplateYaml(
+                default_strategy=StrategyNode(
+                    strategy=scaraplate.strategies.Overwrite, config={}
+                ),
+                strategies_mapping={
+                    "Jenkinsfile": StrategyNode(
+                        strategy=scaraplate.strategies.TemplateHash, config={}
+                    )
+                },
+                git_remote_type=GitHub,
             ),
         ),
     ],
@@ -73,6 +95,7 @@ def test_get_scaraplate_yaml_valid(tempdir_path: Path, yaml_text, expected) -> N
     [
         "tempfile.TemporaryDirectory",
         "tempfile",
+        "scaraplate.strategies.Strategy",
         '{"strategy": "tempfile.TemporaryDirectory"}',
         '{"strategy": 42}',
         '{"config": {}}',  # strategy is missing
@@ -81,7 +104,7 @@ def test_get_scaraplate_yaml_valid(tempdir_path: Path, yaml_text, expected) -> N
     ],
 )
 @pytest.mark.parametrize("mutation_target", ["default_strategy", "strategies_mapping"])
-def test_get_scaraplate_yaml_invalid(
+def test_get_scaraplate_yaml_invalid_strategies(
     tempdir_path: Path, cls: str, mutation_target: str
 ) -> None:
     classes = dict(
@@ -94,6 +117,28 @@ def test_get_scaraplate_yaml_invalid(
 default_strategy: {classes['default_strategy']}
 strategies_mapping:
   Jenkinsfile: {classes['strategies_mapping']}
+"""
+    (tempdir_path / "scaraplate.yaml").write_text(yaml_text)
+    with pytest.raises(ValueError):
+        get_scaraplate_yaml(tempdir_path)
+
+
+@pytest.mark.parametrize(
+    "cls",
+    [
+        "tempfile.TemporaryDirectory",
+        "tempfile",
+        "scaraplate.gitremotes.GitRemote",
+        '{"strategy": "scaraplate.gitremotes.GitLab"}',
+        "42",
+    ],
+)
+def test_get_scaraplate_yaml_invalid_git_remotes(tempdir_path: Path, cls: str) -> None:
+    yaml_text = f"""
+git_remote_type: {cls}
+default_strategy: scaraplate.strategies.Overwrite
+strategies_mapping:
+  Jenkinsfile: scaraplate.strategies.Overwrite
 """
     (tempdir_path / "scaraplate.yaml").write_text(yaml_text)
     with pytest.raises(ValueError):

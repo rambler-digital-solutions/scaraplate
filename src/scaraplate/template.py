@@ -1,30 +1,31 @@
-import re
 import subprocess
 from pathlib import Path
-from typing import NamedTuple, Sequence
+from typing import NamedTuple, Optional, Sequence, Type
+
+from scaraplate.gitremotes import GitRemote, make_git_remote
 
 
 class TemplateMeta(NamedTuple):
-    gitlab_project_url: str
+    git_project_url: str
     commit_hash: str
     commit_url: str
     is_git_dirty: bool
 
 
-def get_template_meta_from_git(template_path: Path) -> TemplateMeta:
-    gitlab_project_url = _gitlab_url_from_remote(_git_remote_origin(template_path))
+def get_template_meta_from_git(
+    template_path: Path, *, git_remote_type: Optional[Type[GitRemote]] = None
+) -> TemplateMeta:
+    remote_url = _git_remote_origin(template_path)
     commit_hash = _git_head_commit_hash(template_path)
 
+    git_remote = make_git_remote(remote_url, git_remote_type=git_remote_type)
+
     return TemplateMeta(
-        gitlab_project_url=gitlab_project_url,
+        git_project_url=git_remote.project_url(),
         commit_hash=commit_hash,
-        commit_url=_gitlab_commit_url(gitlab_project_url, commit_hash),
+        commit_url=git_remote.commit_url(commit_hash),
         is_git_dirty=_is_git_dirty(template_path),
     )
-
-
-def _gitlab_commit_url(project_url: str, commit_hash: str) -> str:
-    return f"{project_url.rstrip('/')}/commit/{commit_hash}"
 
 
 def _git_head_commit_hash(cwd: Path) -> str:
@@ -38,14 +39,6 @@ def _is_git_dirty(cwd: Path) -> bool:
 def _git_remote_origin(cwd: Path) -> str:
     # Would raise if there's no remote called `origin`.
     return _call_git(["git", "config", "--get", "remote.origin.url"], cwd)
-
-
-def _gitlab_url_from_remote(remote_url: str) -> str:
-    url = remote_url
-    # `git@gitlab.com:<suffix>` -> `https://gitlab.com/<suffix>`
-    url = re.sub(r"^[^@]*@([^:]+):", r"https://\1/", url)
-    url = re.sub(r".git$", "", url)
-    return url
 
 
 def _call_git(command: Sequence[str], cwd: Path) -> str:

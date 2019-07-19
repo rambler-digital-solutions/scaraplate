@@ -146,6 +146,7 @@ def test_get_strategy():
             "some/nested/setup.py": sentinel.nested_setup_py,
             "src/*/__init__.py": sentinel.glob_init,
         },
+        git_remote_type=None,
     )
 
     assert sentinel.default is get_strategy(scaraplate_yaml, Path("readme"))

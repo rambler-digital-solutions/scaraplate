@@ -1,27 +1,6 @@
 import pytest
 
-from scaraplate.template import (
-    _git_head_commit_hash,
-    _git_remote_origin,
-    _gitlab_commit_url,
-    _gitlab_url_from_remote,
-    _is_git_dirty,
-)
-
-
-@pytest.mark.parametrize(
-    "project_url, commit_hash, expected_url",
-    [
-        (
-            "https://github.com/rambler-digital-solutions/scaraplate-example-template",
-            "1111111111111111111111111111111111111111",
-            "https://github.com/rambler-digital-solutions/scaraplate-example-template"
-            "/commit/1111111111111111111111111111111111111111",
-        )
-    ],
-)
-def test_gitlab_commit_url(project_url, commit_hash, expected_url):
-    assert expected_url == _gitlab_commit_url(project_url, commit_hash)
+from scaraplate.template import _git_head_commit_hash, _git_remote_origin, _is_git_dirty
 
 
 def test_git_head_commit_hash_valid(init_git_and_commit, tempdir_path):
@@ -73,20 +52,3 @@ def test_git_remote_origin_invalid(init_git_and_commit, tempdir_path):
 
     with pytest.raises(RuntimeError):
         _git_remote_origin(repo_path)
-
-
-@pytest.mark.parametrize(
-    "remote, expected",
-    [
-        (
-            "git@gitlab.rambler.ru:um/scaraplate.git",
-            "https://github.com/rambler-digital-solutions/scaraplate",
-        ),
-        (
-            "https://github.com/rambler-digital-solutions/scaraplate.git",
-            "https://github.com/rambler-digital-solutions/scaraplate",
-        ),
-    ],
-)
-def test_gitlab_url_from_remote(remote, expected):
-    assert expected == _gitlab_url_from_remote(remote)
