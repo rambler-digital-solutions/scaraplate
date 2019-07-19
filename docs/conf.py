@@ -10,17 +10,43 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-# import os
+import os
+import subprocess
+
+
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
 
 # -- Project information -----------------------------------------------------
 
-project = 'scaraplate'
-copyright = '2019, UM'
-author = 'UM'
 
+def get_metadata_value(property_name):
+    # Requires python >=3.5
+
+    setup_py_dir = os.path.join(os.path.dirname(__file__), "..")
+    setup_py_file = os.path.join(setup_py_dir, "setup.py")
+
+    out = subprocess.run(
+        ["python", setup_py_file, "-q", "--%s" % property_name],
+        stdout=subprocess.PIPE,
+        cwd=setup_py_dir,
+        check=True,
+    )
+    property_value = out.stdout.decode().strip()
+    return property_value
+
+
+project = get_metadata_value("name")
+author = get_metadata_value("author")
+
+_copyright_year = 2019
+copyright = "%s, %s" % (_copyright_year, author)
+
+# The full version, including alpha/beta/rc tags
+release = get_metadata_value("version")
+# The short X.Y version
+version = release.rsplit(".", 1)[0]  # `1.0.16+g40b2401` -> `1.0`
 
 # -- General configuration ---------------------------------------------------
 
