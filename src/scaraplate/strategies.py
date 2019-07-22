@@ -23,6 +23,7 @@ The strategy should be an importable Python class which extends
 be validated with the inner ``Schema`` class.
 """
 import abc
+import collections.abc
 import io
 import re
 from configparser import ConfigParser
@@ -68,9 +69,22 @@ class NoExtraKeysSchema(Schema):
     @validates_schema(pass_original=True)
     def check_unknown_fields(self, data, original_data):
         # https://marshmallow.readthedocs.io/en/stable/extending.html#validating-original-input-data  # noqa
-        unknown = set(original_data) - set(self.fields)
-        if unknown:
-            raise ValidationError("Unknown field", unknown)
+        if isinstance(original_data, collections.abc.Mapping):
+            # `many=True` field would contain a list here, otherwise
+            # it would be a dict.
+            original_data = [original_data]
+
+        for item in original_data:
+            unknown = set(item) - set(self.fields)
+            if unknown:
+                raise ValidationError("Unknown field", unknown)
+
+
+class IniKeySchema(NoExtraKeysSchema):
+    """A key in an ini file."""
+
+    section = fields.String(required=True)
+    key = fields.String(required=True)
 
 
 class Strategy(abc.ABC):
@@ -327,9 +341,26 @@ class PylintrcMerge(Strategy):
 
     - Comments are stripped
     - INI file is reformatted (whitespaces are cleaned, sections
-      and values are sorted)
-    - ``ignored-*`` keys of the ``[TYPECHECK]`` section are taken from
-      the target ``.pylintrc``.
+      and keys are sorted)
+    - The configuration keys specified in the ``preserve_keys`` config
+      option are preserved from the target file.
+
+    Sample ``scaraplate.yaml`` excerpt:
+
+    ::
+
+        strategies_mapping:
+          .pylintrc:
+            strategy: scaraplate.strategies.PylintrcMerge
+            config:
+              preserve_keys:
+              - section: MASTER
+                key: extension-pkg-whitelist
+              - section: TYPECHECK
+                key: ignored-classes
+              - section: TYPECHECK
+                key: ignored-modules
+
     """
 
     def apply(self) -> BinaryIO:
@@ -341,15 +372,11 @@ class PylintrcMerge(Strategy):
             target_parser = pylintrc_parser(
                 self.target_contents, source=".pylintrc.target"
             )
-            self._maybe_preserve_key(
-                template_parser, target_parser, "MASTER", "extension-pkg-whitelist"
-            )
-            self._maybe_preserve_key(
-                template_parser, target_parser, "TYPECHECK", "ignored-modules"
-            )
-            self._maybe_preserve_key(
-                template_parser, target_parser, "TYPECHECK", "ignored-classes"
-            )
+
+            for ini_key in self.config["preserve_keys"]:
+                self._maybe_preserve_key(
+                    template_parser, target_parser, ini_key["section"], ini_key["key"]
+                )
 
         return parser_to_pretty_output(template_parser)
 
@@ -369,6 +396,16 @@ class PylintrcMerge(Strategy):
         else:
             _ensure_section(template_parser, section)
             template_parser[section][key] = target
+
+    class Schema(NoExtraKeysSchema):
+        """Allowed params:
+
+        - ``preserve_keys`` (required) -- the list of ``.pylintrc`` keys
+          which should be preserved from the target file. Each value of
+          the list must be a dict with 2 keys: ``section`` and ``key``.
+        """
+
+        preserve_keys = fields.Nested(IniKeySchema, many=True, required=True)
 
 
 class SetupcfgMerge(Strategy):
