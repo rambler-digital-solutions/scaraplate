@@ -27,18 +27,6 @@ Built-in strategies
    .. autoclass:: scaraplate.strategies.TemplateHash.Schema()
 
 
-.. autoclass:: scaraplate.strategies.PythonTemplateHash()
-   :show-inheritance:
-
-   .. autoclass:: scaraplate.strategies.PythonTemplateHash.Schema()
-
-
-.. autoclass:: scaraplate.strategies.GroovyTemplateHash()
-   :show-inheritance:
-
-   .. autoclass:: scaraplate.strategies.GroovyTemplateHash.Schema()
-
-
 .. autoclass:: scaraplate.strategies.PylintrcMerge()
    :show-inheritance:
 
