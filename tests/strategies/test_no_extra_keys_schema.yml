@@ -1,0 +1,10 @@
+strategy: Overwrite
+
+testcases:
+  - name: extra_keys_are_not_allowed
+    template: hi
+    target: hello
+    out: null
+    config:
+      my_unexpected_key: hey
+    raises: marshmallow.exceptions.ValidationError

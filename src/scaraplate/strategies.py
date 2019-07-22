@@ -1,8 +1,34 @@
+"""Strategies do the merging between the files from template and the target.
+
+Strategies are specified in a ``scaraplate.yaml`` file located in the root
+of the template git repo.
+
+``scaraplate.yaml`` might look like this:
+
+::
+
+    default_strategy: scaraplate.strategies.Overwrite
+    strategies_mapping:
+      Jenkinsfile: scaraplate.strategies.TemplateHash
+      package.json:
+        strategy: mypackage.mymodule.MyPackageJson
+        config:
+          my_key: True
+
+
+The strategy should be an importable Python class which extends
+:class:`.Strategy`.
+
+``config`` would be passed to the Strategy's ``__init__`` which would
+be validated with the inner ``Schema`` class.
+"""
 import abc
 import io
 import re
 from configparser import ConfigParser
-from typing import Any, BinaryIO, Dict, List, Optional
+from typing import Any, BinaryIO, Dict, List, Optional, Sequence, Tuple
+
+from marshmallow import Schema, ValidationError, fields, validates_schema
 
 from .parsers import (
     dump_setupcfg_requirements,
@@ -20,7 +46,53 @@ def _ensure_section(parser: ConfigParser, section: str) -> None:
         parser.add_section(section)
 
 
+def _validate_pattern(value: str) -> bool:
+    try:
+        re.compile(value)
+    except re.error:
+        return False
+    else:
+        return True
+
+
+class NoExtraKeysSchema(Schema):
+    """Marshmallow schema which raises an error for unknown keys
+    in the input.
+
+    Supposedly this won't be needed with marshmallow 3, as this feature
+    has been built in,
+    see https://marshmallow.readthedocs.io/en/3.0/quickstart.html#handling-unknown-fields  # noqa
+    """
+
+    @validates_schema(pass_original=True)
+    def check_unknown_fields(self, data, original_data):
+        # https://marshmallow.readthedocs.io/en/stable/extending.html#validating-original-input-data  # noqa
+        unknown = set(original_data) - set(self.fields)
+        if unknown:
+            raise ValidationError("Unknown field", unknown)
+
+
 class Strategy(abc.ABC):
+    """The abstract base class for a scaraplate Strategy.
+
+    To implement and use a custom strategy, the following needs to be done:
+
+    1. Create a new Python class which extends :class:`.Strategy`
+    2. Override the inner ``Schema`` class if you need
+       to configure your strategy from ``scaraplate.yaml``.
+    3. Implement the ``apply`` method.
+
+    Assuming that the new strategy class is importable in the Python
+    environment in which scaraplate is run, to use the strategy
+    you need to specify it in ``scaraplate.yaml``, e.g.
+
+    ::
+
+        strategies_mapping:
+          myfile.txt: mypackage.mymodule.MyStrategy
+
+    """
+
     def __init__(
         self,
         *,
@@ -29,14 +101,34 @@ class Strategy(abc.ABC):
         template_meta: TemplateMeta,
         config: Dict[str, Any],
     ) -> None:
+        """Init the strategy.
+
+        :param target_contents: The file contents in the target project.
+            ``None`` if the file doesn't exist.
+        :param template_contents: The file contents from the template
+            (after cookiecutter is applied).
+        :param template_meta: Template metadata: the current git commit,
+            git remote url and so on.
+        :param config: The strategy config from ``scaraplate.yaml``.
+            It is validated in this ``__init__`` with the inner
+            ``Schema`` class.
+        """
         self.target_contents = target_contents
         self.template_contents = template_contents
         self.template_meta = template_meta
-        self.config = config
+        self.config = self.Schema(strict=True).load(config).data
 
     @abc.abstractmethod
     def apply(self) -> BinaryIO:
+        """Apply the Strategy.
+
+        :return: The resulting file contents which would overwrite
+            the target file.
+        """
         pass
+
+    class Schema(NoExtraKeysSchema):
+        """A default empty schema which doesn't allow any parameters."""
 
 
 class Overwrite(Strategy):
@@ -63,12 +155,24 @@ class IfMissing(Strategy):
 class SortedUniqueLines(Strategy):
     """A strategy which combines both template and target files,
     sorts the combined lines and keeps only unique ones.
+
+    However, the comments in the beginning of the files are treated
+    differently. They would be stripped from the target and replaced
+    with the ones from the template. The most common usecase for this
+    are the License headers.
     """
 
     def apply(self) -> BinaryIO:
-        out_lines = self.template_contents.read().decode().splitlines()
+        header_lines, out_lines = self.split_header(
+            self.template_contents.read().decode().splitlines()
+        )
         if self.target_contents is not None:
-            out_lines.extend(self.target_contents.read().decode().splitlines())
+            # Header from the target is ignored: it will be overridden
+            # with template.
+            _, target_lines = self.split_header(
+                self.target_contents.read().decode().splitlines()
+            )
+            out_lines.extend(target_lines)
 
         # Keep unique lines and sort them.
         #
@@ -76,12 +180,40 @@ class SortedUniqueLines(Strategy):
         # order, so we need to compare by both casefolded str and
         # the original to ensure the stable order for the same strings
         # written in different cases.
-        out_lines = sorted(set(out_lines), key=lambda s: (s.casefold(), s))
+        sorted_lines = sorted(set(out_lines), key=lambda s: (s.casefold(), s))
 
-        out_lines = [line for line in out_lines if line]
-        out_lines.append("")  # trailing newline
+        sorted_lines = [line for line in sorted_lines if line]
+        sorted_lines.append("")  # trailing newline
 
-        return io.BytesIO("\n".join(out_lines).encode())
+        return io.BytesIO("\n".join(header_lines + sorted_lines).encode())
+
+    def split_header(self, lines: Sequence[str]) -> Tuple[List[str], List[str]]:
+        comment_pattern = re.compile(self.config["comment_pattern"])
+        it = iter(lines)
+
+        header_lines = []
+        to_sort_lines = []
+        for line in it:
+            if comment_pattern.match(line) is not None or not line.strip():
+                header_lines.append(line)
+            else:
+                to_sort_lines.append(line)
+                break
+        to_sort_lines.extend(it)
+
+        return header_lines, to_sort_lines
+
+    class Schema(NoExtraKeysSchema):
+        r"""
+        Allowed params:
+
+        - ``comment_pattern`` [``^ *([;#%]|//)``] -- a PCRE pattern which should
+          match the line with a comment.
+        """
+
+        comment_pattern = fields.String(
+            missing=r"^ *([;#%]|//)", validate=[_validate_pattern]
+        )
 
 
 class TemplateHash(Strategy):
@@ -90,7 +222,7 @@ class TemplateHash(Strategy):
     the same template for this file are ignored.
 
     This strategy is useful when a file needs to be different from
-    the template, yet it should be resynced on template updates.
+    the template, yet it should be manually resynced on template updates.
     """
 
     line_comment_start = "#"
@@ -120,7 +252,7 @@ class TemplateHash(Strategy):
 
 class PythonTemplateHash(TemplateHash):
     """TemplateHash strategy which takes Python linters into account:
-    the long lines of the appended comment are suffixed with `# noqa`.
+    the long lines of the appended comment are suffixed with ``# noqa``.
     """
 
     line_length = 87
@@ -147,16 +279,17 @@ class GroovyTemplateHash(TemplateHash):
 
 
 class PylintrcMerge(Strategy):
-    """A strategy which merges `.pylintrc` between a template
+    """A strategy which merges ``.pylintrc`` between a template
     and the target project.
 
-    The resulting `.pylintrc` is the one from the template with
+    The resulting ``.pylintrc`` is the one from the template with
     the following modifications:
+
     - Comments are stripped
     - INI file is reformatted (whitespaces are cleaned, sections
       and values are sorted)
-    - `ignored-*` keys of the `[TYPECHECK]` section are taken from
-      the target `.pylintrc`.
+    - ``ignored-*`` keys of the ``[TYPECHECK]`` section are taken from
+      the target ``.pylintrc``.
     """
 
     def apply(self) -> BinaryIO:
@@ -199,6 +332,8 @@ class PylintrcMerge(Strategy):
 
 
 class SetupcfgMerge(Strategy):
+    """A strategy which merges the Python's ``setup.cfg`` file."""
+
     def apply(self) -> BinaryIO:
         template_parser = setup_cfg_parser(
             self.template_contents, source="setup.cfg.template"

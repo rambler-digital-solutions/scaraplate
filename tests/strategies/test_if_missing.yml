@@ -6,7 +6,6 @@ testcases:
     template: |
       from template!
     target: null
-    is_git_dirty: False
     out: |
       from template!
 
@@ -15,6 +14,5 @@ testcases:
       from template!
     target: |
       from target!
-    is_git_dirty: False
     out: |
       from target!

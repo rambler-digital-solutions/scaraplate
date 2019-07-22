@@ -10,7 +10,6 @@ testcases:
       # comment
       graft
     target: null
-    is_git_dirty: False
     out: |
       # comment
       graft
@@ -25,7 +24,6 @@ testcases:
     target: |
       include c
       graft a
-    is_git_dirty: False
     out: |
       graft a
       include b
@@ -36,7 +34,6 @@ testcases:
       env/
     target: |
       ENV/
-    is_git_dirty: False
     out: |
       ENV/
       env/
@@ -46,7 +43,81 @@ testcases:
       ENV/
     target: |
       env/
-    is_git_dirty: False
     out: |
       ENV/
       env/
+
+  - name: empty
+    template: ''
+    target: null
+    out: ''
+
+  - name: with_license_header
+    template: |
+      # Licensed under blah blah
+      # A Copyright blah blah
+
+      include b
+      graft a
+    target: |
+      # Licensed under blah blah
+      # A Copyright 1970 blah blah
+
+      include a
+    out: |
+      # Licensed under blah blah
+      # A Copyright blah blah
+
+      graft a
+      include a
+      include b
+
+  - name: with_comments_in_between
+    template: |
+      # Licensed under blah blah
+      # A Copyright blah blah
+
+      include b
+      # A T Copyright blah blah
+      graft a
+    target: |
+      # Licensed under blah blah
+      # A Copyright 1970 blah blah
+
+      include a
+      # A D Copyright blah blah
+    out: |
+      # Licensed under blah blah
+      # A Copyright blah blah
+
+      # A D Copyright blah blah
+      # A T Copyright blah blah
+      graft a
+      include a
+      include b
+
+  - name: with_custom_comments_header
+    template: |
+      .. rst comment
+
+      include b
+      graft a
+    target: |
+
+      include a
+    out: |
+      .. rst comment
+
+      graft a
+      include a
+      include b
+    config:
+      comment_pattern: "^ *[.][.] "
+
+  - name: with_invalid_pattern
+    template: hi
+    target: hello
+    out: null
+    config:
+      comment_pattern: '('
+    raises: marshmallow.exceptions.ValidationError

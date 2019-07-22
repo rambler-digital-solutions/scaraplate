@@ -1,10 +1,12 @@
 import io
-from typing import BinaryIO, Optional, Type
+from contextlib import ExitStack
+from typing import Any, BinaryIO, Dict, Optional, Type
 
 import pytest
 import yaml
 
 from scaraplate import strategies
+from scaraplate.config import class_from_str
 from scaraplate.template import TemplateMeta
 
 
@@ -36,8 +38,10 @@ class YamlItem(pytest.Item):
             strategy_type=strategy_type,
             template=self.testcase["template"],
             target=self.testcase["target"],
-            is_git_dirty=self.testcase["is_git_dirty"],
+            is_git_dirty=self.testcase.get("is_git_dirty", False),
             out=self.testcase["out"],
+            config=self.testcase.get("config", {}),
+            raises=self.testcase.get("raises"),
         )
 
     def reportinfo(self):
@@ -49,7 +53,9 @@ def run_strategy_test(
     template: str,
     target: Optional[str],
     is_git_dirty: bool,
-    out: str,
+    out: Optional[str],
+    config: Dict[str, Any],
+    raises: Optional[str],
 ):
     if target is not None:
         target_contents: Optional[BinaryIO] = io.BytesIO(target.encode())
@@ -58,19 +64,26 @@ def run_strategy_test(
 
     template_contents = io.BytesIO(template.encode())
 
-    strategy = strategy_type(
-        target_contents=target_contents,
-        template_contents=template_contents,
-        template_meta=TemplateMeta(
-            git_project_url="https://github.com/rambler-digital-solutions/scaraplate-example-template",
-            commit_hash="1111111111111111111111111111111111111111",
-            commit_url=(
-                "https://github.com/rambler-digital-solutions/scaraplate-example-template"
-                "/commit/1111111111111111111111111111111111111111"
-            ),
-            is_git_dirty=is_git_dirty,
-        ),
-        config={},
-    )
+    raises_cls = class_from_str(raises) if raises is not None else None
 
-    assert out == strategy.apply().read().decode()
+    with ExitStack() as stack:
+        if raises_cls is not None:
+            assert out is None
+            stack.enter_context(pytest.raises(raises_cls))
+
+        strategy = strategy_type(
+            target_contents=target_contents,
+            template_contents=template_contents,
+            template_meta=TemplateMeta(
+                git_project_url="https://github.com/rambler-digital-solutions/scaraplate-example-template",
+                commit_hash="1111111111111111111111111111111111111111",
+                commit_url=(
+                    "https://github.com/rambler-digital-solutions/scaraplate-example-template"
+                    "/commit/1111111111111111111111111111111111111111"
+                ),
+                is_git_dirty=is_git_dirty,
+            ),
+            config=config,
+        )
+
+        assert out == strategy.apply().read().decode()

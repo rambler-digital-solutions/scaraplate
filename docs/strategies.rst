@@ -1,0 +1,51 @@
+Strategies
+==========
+
+.. automodule:: scaraplate.strategies
+   :members: __doc__
+
+
+.. autoclass:: scaraplate.strategies.Strategy()
+   :show-inheritance:
+   :members: __init__, apply
+
+   .. autoclass:: scaraplate.strategies.Strategy.Schema()
+
+
+Built-in strategies
+-------------------
+
+.. autoclass:: scaraplate.strategies.SortedUniqueLines()
+   :show-inheritance:
+
+   .. autoclass:: scaraplate.strategies.SortedUniqueLines.Schema()
+
+
+.. autoclass:: scaraplate.strategies.TemplateHash()
+   :show-inheritance:
+
+   .. autoclass:: scaraplate.strategies.TemplateHash.Schema()
+
+
+.. autoclass:: scaraplate.strategies.PythonTemplateHash()
+   :show-inheritance:
+
+   .. autoclass:: scaraplate.strategies.PythonTemplateHash.Schema()
+
+
+.. autoclass:: scaraplate.strategies.GroovyTemplateHash()
+   :show-inheritance:
+
+   .. autoclass:: scaraplate.strategies.GroovyTemplateHash.Schema()
+
+
+.. autoclass:: scaraplate.strategies.PylintrcMerge()
+   :show-inheritance:
+
+   .. autoclass:: scaraplate.strategies.PylintrcMerge.Schema()
+
+
+.. autoclass:: scaraplate.strategies.SetupcfgMerge()
+   :show-inheritance:
+
+   .. autoclass:: scaraplate.strategies.SetupcfgMerge.Schema()

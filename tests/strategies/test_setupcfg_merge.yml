@@ -9,7 +9,6 @@ testcases:
       version =
       name=foo
     target: null
-    is_git_dirty: False
     # Comments are removed, keys are sorted
     out: |
       [metadata]
@@ -35,7 +34,6 @@ testcases:
       [metadata]
       name=foo
       url = http://
-    is_git_dirty: False
     out: |
       [isort]
       atomic = true
@@ -68,7 +66,6 @@ testcases:
       ignore_missing_imports = True
       [aliases]
       test = pytest
-    is_git_dirty: False
     out: |
       [mypy]
       a = 1
@@ -109,7 +106,6 @@ testcases:
         flask
       fast =
         librabbitmq
-    is_git_dirty: False
     out: |
       [options]
       install_requires =
@@ -139,7 +135,6 @@ testcases:
       testpaths =
           tests/unit/
           tests/integration/
-    is_git_dirty: False
     out: |
       [options]
       install_requires =
@@ -162,7 +157,6 @@ testcases:
     target: |
       [build]
       executable = /usr/bin/env python3.6
-    is_git_dirty: False
     out: |
       [build]
       executable = /usr/bin/env python3.6
@@ -187,7 +181,6 @@ testcases:
       [freebsd]
       user = nobody
       group = nobody
-    is_git_dirty: False
     out: |
       [build]
       executable = /usr/bin/env python3.6
@@ -216,7 +209,6 @@ testcases:
       [infra.dependencies_updater]
       pinned =
         xgboost==0.6
-    is_git_dirty: False
     out: |
       [build]
       executable = /usr/bin/env python3.6

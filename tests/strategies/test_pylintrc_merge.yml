@@ -10,7 +10,6 @@ testcases:
       persistent=yes
       optimize-ast=no
     target: null
-    is_git_dirty: False
     # Comments are removed, keys are sorted
     out: |
       [MASTER]
@@ -31,7 +30,6 @@ testcases:
 
       [MESSAGES CONTROL]
       confidence=
-    is_git_dirty: False
     # Extraneous sections from target are removed
     out: |
       [MASTER]
@@ -56,7 +54,6 @@ testcases:
       [TYPECHECK]
       ignored-modules=ccc,bbb
       ignored-classes=ccc,bbb
-    is_git_dirty: False
     # `ignored-*` keys of the TYPECHECK section are preserved
     out: |
       [MASTER]
@@ -74,7 +71,6 @@ testcases:
     target: |
       [MASTER]
       extension-pkg-whitelist=ujson,lxml
-    is_git_dirty: False
     out: |
       [MASTER]
       extension-pkg-whitelist = ujson,lxml
