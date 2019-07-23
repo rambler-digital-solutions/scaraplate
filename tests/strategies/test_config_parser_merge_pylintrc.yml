@@ -1,4 +1,4 @@
-strategy: PylintrcMerge
+strategy: ConfigParserMerge
 
 testcases:
   - name: non_existing_target
@@ -16,13 +16,12 @@ testcases:
       optimize-ast = no
       persistent = yes
     config: &default_config
+      preserve_sections: []
       preserve_keys:
-      - section: MASTER
-        key: extension-pkg-whitelist
-      - section: TYPECHECK
-        key: ignored-classes
-      - section: TYPECHECK
-        key: ignored-modules
+      - sections: ^MASTER$
+        keys: ^extension-pkg-whitelist$
+      - sections: ^TYPECHECK$
+        keys: ^ignored-
 
   - name: target_with_extraneous_sections
     template: |
@@ -110,6 +109,7 @@ testcases:
       [MASTER]
       extension-pkg-whitelist = numpy,ujson
     config:
+      preserve_sections: []
       preserve_keys: []
 
   - name: bad_preserve_keys_item_raises
@@ -121,6 +121,7 @@ testcases:
       extension-pkg-whitelist=ujson,lxml
     out: null
     config:
+      preserve_sections: []
       preserve_keys:
-        - key: extension-pkg
+        - keys: ^extension-pkg$
     raises: marshmallow.exceptions.ValidationError

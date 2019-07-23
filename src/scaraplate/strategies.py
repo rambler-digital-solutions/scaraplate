@@ -10,51 +10,35 @@ of the template git repo.
     default_strategy: scaraplate.strategies.Overwrite
     strategies_mapping:
       Jenkinsfile: scaraplate.strategies.TemplateHash
+      src/*/__init__.py: scaraplate.strategies.IfMissing
       package.json:
         strategy: mypackage.mymodule.MyPackageJson
         config:
           my_key: True
 
 
-The strategy should be an importable Python class which extends
+The strategy should be an importable Python class which implements
 :class:`.Strategy`.
 
 ``config`` would be passed to the Strategy's ``__init__`` which would
 be validated with the inner ``Schema`` class.
 """
 import abc
-import collections.abc
 import io
 import re
 from configparser import ConfigParser
-from typing import Any, BinaryIO, Dict, List, Optional, Sequence, Tuple
+from typing import Any, BinaryIO, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
 from marshmallow import Schema, ValidationError, fields, validates_schema
 from marshmallow.validate import Range
+from packaging.requirements import Requirement
 
-from .parsers import (
-    dump_setupcfg_requirements,
-    parse_setupcfg_requirements,
-    parser_to_pretty_output,
-    pylintrc_parser,
-    requirement_name,
-    setup_cfg_parser,
-)
+from . import fields as scaraplate_fields
+from .parsers import parser_to_pretty_output
 from .template import TemplateMeta
 
 
-def _ensure_section(parser: ConfigParser, section: str) -> None:
-    if not parser.has_section(section):
-        parser.add_section(section)
-
-
-def _validate_pattern(value: str) -> bool:
-    try:
-        re.compile(value)
-    except re.error:
-        return False
-    else:
-        return True
+Pattern = Any  # re.Pattern since py3.7
 
 
 class NoExtraKeysSchema(Schema):
@@ -69,7 +53,7 @@ class NoExtraKeysSchema(Schema):
     @validates_schema(pass_original=True)
     def check_unknown_fields(self, data, original_data):
         # https://marshmallow.readthedocs.io/en/stable/extending.html#validating-original-input-data  # noqa
-        if isinstance(original_data, collections.abc.Mapping):
+        if not self.many:
             # `many=True` field would contain a list here, otherwise
             # it would be a dict.
             original_data = [original_data]
@@ -80,11 +64,18 @@ class NoExtraKeysSchema(Schema):
                 raise ValidationError("Unknown field", unknown)
 
 
-class IniKeySchema(NoExtraKeysSchema):
-    """A key in an ini file."""
+class ConfigKeySchema(NoExtraKeysSchema):
+    """A key in an INI-like config file."""
 
-    section = fields.String(required=True)
-    key = fields.String(required=True)
+    sections = scaraplate_fields.Pattern(required=True)
+    keys = scaraplate_fields.Pattern(required=True)
+
+
+class ConfigSectionSchema(NoExtraKeysSchema):
+    """A key in an INI-like config file."""
+
+    sections = scaraplate_fields.Pattern(required=True)
+    excluded_keys = scaraplate_fields.Pattern(missing=None)
 
 
 class Strategy(abc.ABC):
@@ -92,7 +83,7 @@ class Strategy(abc.ABC):
 
     To implement and use a custom strategy, the following needs to be done:
 
-    1. Create a new Python class which extends :class:`.Strategy`
+    1. Create a new Python class which implements :class:`.Strategy`
     2. Override the inner ``Schema`` class if you need
        to configure your strategy from ``scaraplate.yaml``.
     3. Implement the ``apply`` method.
@@ -143,7 +134,7 @@ class Strategy(abc.ABC):
         pass
 
     class Schema(NoExtraKeysSchema):
-        """A default empty schema which doesn't allow any parameters."""
+        """An empty default schema which doesn't allow any parameters."""
 
 
 class Overwrite(Strategy):
@@ -175,6 +166,16 @@ class SortedUniqueLines(Strategy):
     differently. They would be stripped from the target and replaced
     with the ones from the template. The most common usecase for this
     are the License headers.
+
+    Sample ``scaraplate.yaml`` excerpt:
+
+    ::
+
+        strategies_mapping:
+          MANIFEST.in:
+            strategy: scaraplate.strategies.SortedUniqueLines
+          .gitignore:
+            strategy: scaraplate.strategies.SortedUniqueLines
     """
 
     def apply(self) -> BinaryIO:
@@ -203,7 +204,7 @@ class SortedUniqueLines(Strategy):
         return io.BytesIO("\n".join(header_lines + sorted_lines).encode())
 
     def split_header(self, lines: Sequence[str]) -> Tuple[List[str], List[str]]:
-        comment_pattern = re.compile(self.config["comment_pattern"])
+        comment_pattern = self.config["comment_pattern"]
         it = iter(lines)
 
         header_lines = []
@@ -225,8 +226,8 @@ class SortedUniqueLines(Strategy):
           match the line with a comment.
         """
 
-        comment_pattern = fields.String(
-            missing=r"^ *([;#%]|//)", validate=[_validate_pattern]
+        comment_pattern = scaraplate_fields.Pattern(
+            missing=re.compile(r"^ *([;#%]|//)")
         )
 
 
@@ -332,18 +333,23 @@ class TemplateHash(Strategy):
         max_line_linter_ignore_mark = fields.String(missing="  # noqa")
 
 
-class PylintrcMerge(Strategy):
-    """A strategy which merges ``.pylintrc`` between a template
-    and the target project.
+class ConfigParserMerge(Strategy):
+    """A strategy which merges INI-like files (with :mod:`configparser`).
 
-    The resulting ``.pylintrc`` is the one from the template with
+    The resulting file is the one from the template with
     the following modifications:
 
     - Comments are stripped
     - INI file is reformatted (whitespaces are cleaned, sections
       and keys are sorted)
-    - The configuration keys specified in the ``preserve_keys`` config
-      option are preserved from the target file.
+    - Sections specified in the ``preserve_sections`` config list are
+      preserved from the target file.
+    - Keys specified in the ``preserve_keys`` config list are
+      preserved from the target file.
+
+    This strategy cannot be used to merge config files which contain
+    keys without a preceding section declaration
+    (e.g. ``.editorconfig`` won't work).
 
     Sample ``scaraplate.yaml`` excerpt:
 
@@ -351,138 +357,106 @@ class PylintrcMerge(Strategy):
 
         strategies_mapping:
           .pylintrc:
-            strategy: scaraplate.strategies.PylintrcMerge
+            strategy: scaraplate.strategies.ConfigParserMerge
             config:
+              preserve_sections: []
               preserve_keys:
-              - section: MASTER
-                key: extension-pkg-whitelist
-              - section: TYPECHECK
-                key: ignored-classes
-              - section: TYPECHECK
-                key: ignored-modules
+              - sections: ^MASTER$
+                keys: ^extension-pkg-whitelist$
+              - sections: ^TYPECHECK$
+                keys: ^ignored-
 
+          tox.ini:
+            strategy: scaraplate.strategies.ConfigParserMerge
+            config:
+              preserve_sections:
+              - sections: ^tox$
+              preserve_keys:
+              - sections: ^testenv
+                keys: ^extras$
+
+          pytest.ini:
+            strategy: scaraplate.strategies.ConfigParserMerge
+            config:
+              preserve_sections: []
+              preserve_keys:
+              - sections: ^pytest$
+                keys: ^python_files$
+
+          .isort.cfg:
+            strategy: scaraplate.strategies.ConfigParserMerge
+            config:
+              preserve_sections: []
+              preserve_keys:
+              - sections: ^settings$
+                keys: ^known_third_party$
     """
 
     def apply(self) -> BinaryIO:
-        template_parser = pylintrc_parser(
-            self.template_contents, source=".pylintrc.template"
-        )
+        template_parser = self.parse_config(self.template_contents, source="<template>")
+
+        target_parser: Optional[ConfigParser] = None
 
         if self.target_contents is not None:
-            target_parser = pylintrc_parser(
-                self.target_contents, source=".pylintrc.target"
-            )
+            target_parser = self.parse_config(self.target_contents, source="<target>")
 
-            for ini_key in self.config["preserve_keys"]:
-                self._maybe_preserve_key(
-                    template_parser, target_parser, ini_key["section"], ini_key["key"]
-                )
+        self.merge_configs(template_parser, target_parser)
 
         return parser_to_pretty_output(template_parser)
 
-    def _maybe_preserve_key(
-        self,
-        template_parser: ConfigParser,
-        target_parser: ConfigParser,
-        section: str,
-        key: str,
+    def parse_config(self, data: BinaryIO, source: str) -> ConfigParser:
+        # We don't need to treat the `[DEFAULT]` section as actually
+        # a one which provides defaults to other sections, so we disable
+        # this by mocking the `default_section`.
+        parser = ConfigParser(
+            default_section="__scaraplate_internal_nonexisting_default"
+        )
+
+        text = data.read().decode()
+        parser.read_string(text, source=source)
+        return parser
+
+    def merge_configs(
+        self, template_parser: ConfigParser, target_parser: Optional[ConfigParser]
     ) -> None:
-        try:
-            target = target_parser[section][key]
-        except KeyError:
-            # No such section/value in target -- keep the one that is
-            # in the template.
+        if target_parser is None:
             return
-        else:
-            _ensure_section(template_parser, section)
-            template_parser[section][key] = target
 
-    class Schema(NoExtraKeysSchema):
-        """Allowed params:
-
-        - ``preserve_keys`` (required) -- the list of ``.pylintrc`` keys
-          which should be preserved from the target file. Each value of
-          the list must be a dict with 2 keys: ``section`` and ``key``.
-        """
-
-        preserve_keys = fields.Nested(IniKeySchema, many=True, required=True)
-
-
-class SetupcfgMerge(Strategy):
-    """A strategy which merges the Python's ``setup.cfg`` file."""
-
-    def apply(self) -> BinaryIO:
-        template_parser = setup_cfg_parser(
-            self.template_contents, source="setup.cfg.template"
-        )
-
-        target_parser = None
-
-        if self.target_contents is not None:
-            target_parser = setup_cfg_parser(
-                self.target_contents, source="setup.cfg.target"
-            )
-
-            self._maybe_preserve_sections(
+        for ini_key in self.config["preserve_sections"]:
+            self.maybe_preserve_sections(
                 template_parser,
                 target_parser,
-                # A non-standard section
-                re.compile("^freebsd$"),
+                ini_key["sections"],
+                ini_key["excluded_keys"],
             )
 
-            self._maybe_preserve_sections(
-                template_parser,
-                target_parser,
-                # A non-standard section
-                re.compile("^infra.dependencies_updater$"),
+        for ini_key in self.config["preserve_keys"]:
+            self.maybe_preserve_key(
+                template_parser, target_parser, ini_key["sections"], ini_key["keys"]
             )
 
-            self._maybe_preserve_sections(
-                template_parser, target_parser, re.compile("^mypy-")
-            )
-
-            self._maybe_preserve_sections(
-                template_parser, target_parser, re.compile("^options.data_files$")
-            )
-
-            self._maybe_preserve_sections(
-                template_parser, target_parser, re.compile("^options.entry_points$")
-            )
-
-            self._maybe_preserve_sections(
-                template_parser,
-                target_parser,
-                re.compile("^options.extras_require$"),
-                ignore_keys_pattern=re.compile("^develop$"),
-            )
-
-            self._maybe_preserve_key(
-                template_parser, target_parser, "tool:pytest", "testpaths"
-            )
-
-            # TODO verify if this is still relevant:
-            self._maybe_preserve_key(
-                template_parser, target_parser, "build", "executable"
-            )
-
-        self._merge_requirements(
-            template_parser, target_parser, "options.extras_require", "develop"
-        )
-
-        self._merge_requirements(
-            template_parser, target_parser, "options", "install_requires"
-        )
-
-        return parser_to_pretty_output(template_parser)
-
-    def _maybe_preserve_sections(
+    def maybe_preserve_key(
         self,
         template_parser: ConfigParser,
         target_parser: ConfigParser,
-        sections_pattern: Any,  # re.Pattern since py3.7
-        ignore_keys_pattern: Any = None,
+        sections_pattern: Pattern,
+        keys_pattern: Pattern,
     ) -> None:
-        for section in target_parser.sections():  # default section is ignored
+        for section in target_parser.sections():
+            if sections_pattern.match(section):
+                for key, value in target_parser[section].items():
+                    if keys_pattern.match(key):
+                        self.ensure_section(template_parser, section)
+                        template_parser[section][key] = value
+
+    def maybe_preserve_sections(
+        self,
+        template_parser: ConfigParser,
+        target_parser: ConfigParser,
+        sections_pattern: Pattern,
+        ignore_keys_pattern: Optional[Pattern],
+    ) -> None:
+        for section in target_parser.sections():
             if sections_pattern.match(section):
                 section_data = dict(target_parser[section])
 
@@ -492,6 +466,112 @@ class SetupcfgMerge(Strategy):
                             section_data[key] = value
 
                 template_parser[section] = section_data
+
+    def ensure_section(self, parser: ConfigParser, section: str) -> None:
+        if not parser.has_section(section):
+            parser.add_section(section)
+
+    class Schema(NoExtraKeysSchema):
+        """Allowed params:
+
+        - ``preserve_keys`` (required) -- the list of config keys
+          which should be preserved from the target file. Values schema:
+
+            + ``sections`` (required) -- a PCRE pattern matching
+              sections containing the keys to preserve.
+            + ``keys`` (required) -- a PCRE pattern matching keys
+              in the matched sections.
+
+        - ``preserve_sections`` (required) -- the list of config sections
+          which should be preserved from the target file. If the matching
+          section exists in the template, it would be fully overwritten.
+          Values schema:
+
+            + ``sections`` (required) -- a PCRE pattern matching
+              sections which should be preserved from the target.
+            + ``excluded_keys`` [`None`] -- a PCRE pattern matching
+              the keys which should not be overwritten in the template
+              when preserving the section.
+
+        """
+
+        preserve_keys = fields.Nested(ConfigKeySchema, many=True, required=True)
+        preserve_sections = fields.Nested(ConfigSectionSchema, many=True, required=True)
+
+
+class SetupcfgMerge(ConfigParserMerge):
+    r"""A strategy which merges the Python's ``setup.cfg`` file.
+
+    Based on the :class:`.ConfigParserMerge` strategy, additionally
+    containing a ``merge_requirements`` config option for merging
+    the lists of Python requirements between the files.
+
+    Sample ``scaraplate.yaml`` excerpt:
+
+    ::
+
+        strategies_mapping:
+          setup.cfg:
+            strategy: scaraplate.strategies.SetupcfgMerge
+            config:
+              merge_requirements:
+              - sections: ^options$
+                keys: ^install_requires$
+              - sections: ^options\.extras_require$
+                keys: ^develop$
+              preserve_keys:
+              - sections: ^tool:pytest$
+                keys: ^testpaths$
+              - sections: ^build$
+                keys: ^executable$
+              preserve_sections:
+              - sections: ^mypy-
+              - sections: ^options\.data_files$
+              - sections: ^options\.entry_points$
+              - sections: ^options\.extras_require$
+    """
+
+    class Schema(ConfigParserMerge.Schema):
+        __doc__ = (
+            ConfigParserMerge.Schema.__doc__  # type: ignore
+            + """
+
+        - ``merge_requirements`` (required) -- the list of config
+          keys containing the lists of Python requirements which should
+          be merged together. Values schema:
+
+            + ``sections`` (required) -- a PCRE pattern matching
+              sections containing the keys with requirements.
+            + ``keys`` (required) -- a PCRE pattern matching keys
+              in the matched sections.
+        """
+        )
+
+        merge_requirements = fields.Nested(ConfigKeySchema, many=True, required=True)
+
+    def merge_configs(
+        self, template_parser: ConfigParser, target_parser: Optional[ConfigParser]
+    ) -> None:
+        keys: Set[Tuple[str, str]] = set()
+
+        for ini_key in self.config["merge_requirements"]:
+            if target_parser is not None:
+                for section in target_parser.sections():
+                    if ini_key["sections"].match(section):
+                        for key, value in target_parser[section].items():
+                            if ini_key["keys"].match(key):
+                                keys.add((section, key))
+
+            for section in template_parser.sections():
+                if ini_key["sections"].match(section):
+                    for key, value in template_parser[section].items():
+                        if ini_key["keys"].match(key):
+                            keys.add((section, key))
+
+        for section, key in keys:
+            self._merge_requirements(template_parser, target_parser, section, key)
+
+        super().merge_configs(template_parser, target_parser)
 
     def _merge_requirements(
         self,
@@ -509,7 +589,7 @@ class SetupcfgMerge(Strategy):
             target_requirements = []
 
         def normalize_requirement(requirement):
-            return requirement_name(requirement).lower()
+            return self._requirement_name(requirement).lower()
 
         existing_requirement_names = set(
             map(normalize_requirement, target_requirements)
@@ -523,8 +603,14 @@ class SetupcfgMerge(Strategy):
 
         wanted_requirements = sorted(wanted_requirements, key=str.casefold)
 
-        _ensure_section(template_parser, section)
-        template_parser[section][key] = dump_setupcfg_requirements(wanted_requirements)
+        result = self._dump_setupcfg_requirements(wanted_requirements)
+
+        self.ensure_section(template_parser, section)
+        template_parser[section][key] = result
+
+        if target_parser is not None:
+            self.ensure_section(target_parser, section)
+            target_parser[section][key] = result
 
     def _parse_requirements(
         self, parser: ConfigParser, section: str, key: str
@@ -534,21 +620,22 @@ class SetupcfgMerge(Strategy):
         except KeyError:
             return []
 
-        return parse_setupcfg_requirements(requirements)
+        return self._parse_setupcfg_requirements(requirements)
 
-    def _maybe_preserve_key(
-        self,
-        template_parser: ConfigParser,
-        target_parser: ConfigParser,
-        section: str,
-        key: str,
-    ) -> None:
-        try:
-            target = target_parser[section][key]
-        except KeyError:
-            # No such section/value in target -- keep the one that is
-            # in the template.
-            return
-        else:
-            _ensure_section(template_parser, section)
-            template_parser[section][key] = target
+    def _parse_setupcfg_requirements(self, requirements: str) -> List[str]:
+        return [r for r in map(str.strip, requirements.split()) if r]
+
+    def _requirement_name(self, full_requirement: str) -> str:
+        requirement = Requirement(full_requirement)
+        return requirement.name
+
+    def _dump_setupcfg_requirements(self, requirements: Iterable[str]) -> str:
+        # Leave first element empty to produce nicer cfg lists like:
+        #   install_requires =
+        #       foo==1.0.0
+        #       bar==2.0.0
+        # instead of
+        #   install_requires = foo==1.0.0
+        #       bar==2.0.0
+        acc = [""] + [item for item in requirements]
+        return "\n".join(acc)

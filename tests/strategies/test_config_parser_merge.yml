@@ -1,0 +1,205 @@
+strategy: ConfigParserMerge
+
+testcases:
+
+  - name: non_existing_target
+    template: |
+      [DEFAULT]
+      key_in_default_section = hello
+
+      [mysection]
+      # a comment which will be stripped
+      mykey=hi
+    target: null
+    out: |
+      [DEFAULT]
+      key_in_default_section = hello
+
+      [mysection]
+      mykey = hi
+    config:
+      preserve_sections: []
+      preserve_keys: []
+
+  - name: existing_target
+    template: |
+      [DEFAULT]
+      key_in_default_section = hello
+      template_key = 1
+
+      [mysectiona]
+      mykey=hi
+    target: |
+      [DEFAULT]
+      key_in_default_section = hi
+      target_key = 1
+
+      [mysectionb]
+      mykey=hi
+    out: |
+      [DEFAULT]
+      key_in_default_section = hello
+      template_key = 1
+
+      [mysectiona]
+      mykey = hi
+    config:
+      preserve_sections: []
+      preserve_keys: []
+
+  - name: preserve_sections
+    template: |
+      [DEFAULT]
+      key_in_default_section = hello
+      template_key = 1
+
+      [mysectiona]
+      mykey=hi
+
+      [mysectionc]
+      mykey=hi
+      mykey2 = hi
+
+      [notmy]
+      aa = 1
+      mykey = hi
+    target: |
+      [DEFAULT]
+      key_in_default_section = hi
+      target_key = 1
+
+      [mysectionb]
+      mykey=hi
+
+      [mysectionc]
+      mykey=hello
+      mykey3 = hi
+
+      [notmy]
+      bb = 1
+      mykey = hello
+    out: |
+      [DEFAULT]
+      key_in_default_section = hi
+      target_key = 1
+
+      [mysectiona]
+      mykey = hi
+
+      [mysectionb]
+      mykey = hi
+
+      [mysectionc]
+      mykey = hello
+      mykey3 = hi
+
+      [notmy]
+      bb = 1
+      mykey = hi
+    config:
+      preserve_sections:
+      - sections: ^DEFAULT$
+      - sections: ^mysection
+      - sections: ^nonexisting$
+      - sections: ^notmy$
+        excluded_keys: ^mykey
+      preserve_keys: []
+
+  - name: preserve_keys
+    template: |
+      [DEFAULT]
+      key_in_default_section = hello
+      template_key = 1
+
+      [mysectiona]
+      mykey=hi
+
+      [mysectionc]
+      mykey=hi
+      mykey2 = hi
+
+      [notmy]
+      aa = 1
+      mykey = hi
+    target: |
+      [DEFAULT]
+      key_in_default_section = hi
+      target_key = 1
+
+      [mysectionb]
+      mykey=hi
+
+      [mysectionc]
+      mykey=hello
+      mykey3 = hi
+
+      [notmy]
+      bb = 1
+      mykey = hello
+    out: |
+      [DEFAULT]
+      key_in_default_section = hi
+      template_key = 1
+
+      [mysectiona]
+      mykey = hi
+
+      [mysectionb]
+      mykey = hi
+
+      [mysectionc]
+      mykey = hello
+      mykey2 = hi
+      mykey3 = hi
+
+      [notmy]
+      aa = 1
+      bb = 1
+      mykey = hi
+    config:
+      preserve_sections: []
+      preserve_keys:
+        - sections: ^DEFAULT$
+          keys: ^key_in_default_section$
+        - sections: ^mysection
+          keys: ^mykey
+        - sections: ^notmy$
+          keys: ^bb$
+
+  - name: empty_config_raises
+    template: |
+      [mysection]
+      mykey = hi
+    target: |
+      [mysection]
+      mykey = hi
+    out: null
+    raises: marshmallow.exceptions.ValidationError
+
+  - name: minimal_passing_config
+    template: |
+      [mysection]
+      mykey = hi
+    target: |
+      [mysection]
+      mykey = hi
+    out: |
+      [mysection]
+      mykey = hi
+    config:
+      preserve_sections: []
+      preserve_keys: []
+
+  - name: bad_preserve_keys_item_raises
+    template: |
+      [MASTER]
+      extension-pkg-whitelist=numpy,ujson
+    target: |
+      [MASTER]
+      extension-pkg-whitelist=ujson,lxml
+    out: null
+    config:
+      preserve_sections: []
+      preserve_keys:
+        - keys: ^extension-pkg$
+    raises: marshmallow.exceptions.ValidationError

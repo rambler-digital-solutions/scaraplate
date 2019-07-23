@@ -15,6 +15,18 @@ Strategies
 Built-in strategies
 -------------------
 
+.. autoclass:: scaraplate.strategies.Overwrite()
+   :show-inheritance:
+
+   .. autoclass:: scaraplate.strategies.Overwrite.Schema()
+
+
+.. autoclass:: scaraplate.strategies.IfMissing()
+   :show-inheritance:
+
+   .. autoclass:: scaraplate.strategies.IfMissing.Schema()
+
+
 .. autoclass:: scaraplate.strategies.SortedUniqueLines()
    :show-inheritance:
 
@@ -27,10 +39,10 @@ Built-in strategies
    .. autoclass:: scaraplate.strategies.TemplateHash.Schema()
 
 
-.. autoclass:: scaraplate.strategies.PylintrcMerge()
+.. autoclass:: scaraplate.strategies.ConfigParserMerge()
    :show-inheritance:
 
-   .. autoclass:: scaraplate.strategies.PylintrcMerge.Schema()
+   .. autoclass:: scaraplate.strategies.ConfigParserMerge.Schema()
 
 
 .. autoclass:: scaraplate.strategies.SetupcfgMerge()

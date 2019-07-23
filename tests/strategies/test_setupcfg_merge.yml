@@ -14,12 +14,24 @@ testcases:
       [metadata]
       name = foo
       version =
-
-      [options]
-      install_requires =
-
-      [options.extras_require]
-      develop =
+    config: &default_config
+      merge_requirements:
+      - sections: ^options$
+        keys: ^install_requires$
+      - sections: ^options\.extras_require$
+        keys: ^develop$
+      preserve_keys:
+      - sections: ^tool:pytest$
+        keys: ^testpaths$
+      - sections: ^build$
+        keys: ^executable$
+      preserve_sections:
+      - sections: ^freebsd$
+      - sections: ^infra\.dependencies_updater$
+      - sections: ^mypy-
+      - sections: ^options\.data_files$
+      - sections: ^options\.entry_points$
+      - sections: ^options\.extras_require$
 
   - name: extraneous_sections
     template: |
@@ -41,12 +53,8 @@ testcases:
       [metadata]
       name = foo
       version = 1
-
-      [options]
-      install_requires =
-
-      [options.extras_require]
-      develop =
+    config:
+      <<: *default_config
 
   - name: mypy_sections
     template: |
@@ -78,12 +86,31 @@ testcases:
 
       [mypy-pytest.*]
       ignore_missing_imports = True
+    config:
+      <<: *default_config
 
+  - name: requirements_nonexisting_target
+    template: |
       [options]
       install_requires =
+        Black
+        isort==4.3
 
       [options.extras_require]
       develop =
+        pytest
+    target: null
+    out: |
+      [options]
+      install_requires =
+          Black
+          isort==4.3
+
+      [options.extras_require]
+      develop =
+          pytest
+    config:
+      <<: *default_config
 
   - name: requirements_update
     template: |
@@ -119,6 +146,8 @@ testcases:
           pytest
       fast =
           librabbitmq
+    config:
+      <<: *default_config
 
   - name: pytest_testpaths
     template: |
@@ -136,12 +165,6 @@ testcases:
           tests/unit/
           tests/integration/
     out: |
-      [options]
-      install_requires =
-
-      [options.extras_require]
-      develop =
-
       [tool:pytest]
       addopts =
           --verbose
@@ -149,6 +172,8 @@ testcases:
       testpaths =
           tests/unit/
           tests/integration/
+    config:
+      <<: *default_config
 
   - name: build_executable
     template: |
@@ -163,12 +188,8 @@ testcases:
 
       [metadata]
       name = foo
-
-      [options]
-      install_requires =
-
-      [options.extras_require]
-      develop =
+    config:
+      <<: *default_config
 
   - name: freebsd
     template: |
@@ -191,12 +212,8 @@ testcases:
 
       [metadata]
       name = foo
-
-      [options]
-      install_requires =
-
-      [options.extras_require]
-      develop =
+    config:
+      <<: *default_config
 
   - name: infra.dependencies_updater
     template: |
@@ -219,9 +236,55 @@ testcases:
 
       [metadata]
       name = foo
+    config:
+      <<: *default_config
 
+  - name: requirements_update_multiple_extras
+    template: |
       [options]
       install_requires =
+        isort==4.3
 
       [options.extras_require]
-      develop =
+      nondev =
+        django
+      dev-a =
+        pytest
+      dev-b =
+        flake8
+    target: |
+      [options]
+      install_requires =
+        aiohttp
+
+      [options.extras_require]
+      nondevtarget =
+        django
+      dev-c =
+        flask
+      dev-b =
+        isort
+    out: |
+      [options]
+      install_requires =
+          aiohttp
+          isort==4.3
+
+      [options.extras_require]
+      dev-a =
+          pytest
+      dev-b =
+          flake8
+          isort
+      dev-c =
+          flask
+      nondev =
+          django
+    config:
+      merge_requirements:
+      - sections: ^options$
+        keys: ^install_requires$
+      - sections: ^options\.extras_require$
+        keys: ^dev-
+      preserve_keys: []
+      preserve_sections: []
