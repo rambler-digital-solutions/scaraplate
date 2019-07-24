@@ -1,5 +1,5 @@
 
-strategy: SetupcfgMerge
+strategy: SetupCfgMerge
 
 testcases:
   - name: non_existing_target

@@ -532,7 +532,7 @@ class ConfigParserMerge(Strategy):
         preserve_sections = fields.Nested(ConfigSectionSchema, many=True, required=True)
 
 
-class SetupcfgMerge(ConfigParserMerge):
+class SetupCfgMerge(ConfigParserMerge):
     r"""A strategy which merges the Python's ``setup.cfg`` file.
 
     Based on the :class:`.ConfigParserMerge` strategy, additionally
@@ -545,7 +545,7 @@ class SetupcfgMerge(ConfigParserMerge):
 
         strategies_mapping:
           setup.cfg:
-            strategy: scaraplate.strategies.SetupcfgMerge
+            strategy: scaraplate.strategies.SetupCfgMerge
             config:
               merge_requirements:
               - sections: ^options$

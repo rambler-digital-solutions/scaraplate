@@ -34,5 +34,5 @@ Cookiecutter context types
    :show-inheritance:
 
 
-.. autoclass:: scaraplate.cookiecutter.Setupcfg
+.. autoclass:: scaraplate.cookiecutter.SetupCfg
    :show-inheritance:

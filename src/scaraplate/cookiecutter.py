@@ -10,7 +10,7 @@ might be specified in ``scaraplate.yaml`` like this:
 
 ::
 
-    cookiecutter_context_type: scaraplate.cookiecutter.Setupcfg
+    cookiecutter_context_type: scaraplate.cookiecutter.SetupCfg
 """
 import abc
 from configparser import ConfigParser
@@ -82,7 +82,7 @@ class ScaraplateConf(CookieCutterContext):
         return f"{self.scaraplate_conf}"
 
 
-class Setupcfg(CookieCutterContext):
+class SetupCfg(CookieCutterContext):
     """A context reader which retrieves the cookiecutter context from
     a section in ``setup.cfg`` file.
 

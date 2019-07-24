@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from scaraplate.cookiecutter import ScaraplateConf, Setupcfg
+from scaraplate.cookiecutter import ScaraplateConf, SetupCfg
 
 
 @pytest.mark.parametrize(
@@ -51,7 +51,7 @@ def test_setupcfg(tempdir_path: Path, contents, expected_context):
         if expected_context is None:
             stack.enter_context(pytest.raises(FileNotFoundError))
 
-        cookiecutter_context = Setupcfg(tempdir_path)
+        cookiecutter_context = SetupCfg(tempdir_path)
         assert expected_context == cookiecutter_context.read()
 
 

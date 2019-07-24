@@ -45,7 +45,7 @@ Built-in strategies
    .. autoclass:: scaraplate.strategies.ConfigParserMerge.Schema()
 
 
-.. autoclass:: scaraplate.strategies.SetupcfgMerge()
+.. autoclass:: scaraplate.strategies.SetupCfgMerge()
    :show-inheritance:
 
-   .. autoclass:: scaraplate.strategies.SetupcfgMerge.Schema()
+   .. autoclass:: scaraplate.strategies.SetupCfgMerge.Schema()

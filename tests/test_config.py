@@ -4,7 +4,7 @@ import pytest
 
 import scaraplate.strategies
 from scaraplate.config import ScaraplateYaml, StrategyNode, get_scaraplate_yaml
-from scaraplate.cookiecutter import ScaraplateConf, Setupcfg
+from scaraplate.cookiecutter import ScaraplateConf, SetupCfg
 from scaraplate.gitremotes import GitHub
 
 
@@ -88,7 +88,7 @@ strategies_mapping:
         ),
         (
             """
-cookiecutter_context_type: scaraplate.cookiecutter.Setupcfg
+cookiecutter_context_type: scaraplate.cookiecutter.SetupCfg
 default_strategy: scaraplate.strategies.Overwrite
 strategies_mapping:
   Jenkinsfile: scaraplate.strategies.TemplateHash
@@ -103,7 +103,7 @@ strategies_mapping:
                     )
                 },
                 git_remote_type=None,
-                cookiecutter_context_type=Setupcfg,
+                cookiecutter_context_type=SetupCfg,
             ),
         ),
     ],
