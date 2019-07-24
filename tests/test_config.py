@@ -4,6 +4,7 @@ import pytest
 
 import scaraplate.strategies
 from scaraplate.config import ScaraplateYaml, StrategyNode, get_scaraplate_yaml
+from scaraplate.cookiecutter import ScaraplateConf, Setupcfg
 from scaraplate.gitremotes import GitHub
 
 
@@ -30,6 +31,7 @@ strategies_mapping:
                     ),
                 },
                 git_remote_type=None,
+                cookiecutter_context_type=ScaraplateConf,
             ),
         ),
         (
@@ -61,6 +63,7 @@ strategies_mapping:
                     ),
                 },
                 git_remote_type=None,
+                cookiecutter_context_type=ScaraplateConf,
             ),
         ),
         (
@@ -80,6 +83,27 @@ strategies_mapping:
                     )
                 },
                 git_remote_type=GitHub,
+                cookiecutter_context_type=ScaraplateConf,
+            ),
+        ),
+        (
+            """
+cookiecutter_context_type: scaraplate.cookiecutter.Setupcfg
+default_strategy: scaraplate.strategies.Overwrite
+strategies_mapping:
+  Jenkinsfile: scaraplate.strategies.TemplateHash
+""",
+            ScaraplateYaml(
+                default_strategy=StrategyNode(
+                    strategy=scaraplate.strategies.Overwrite, config={}
+                ),
+                strategies_mapping={
+                    "Jenkinsfile": StrategyNode(
+                        strategy=scaraplate.strategies.TemplateHash, config={}
+                    )
+                },
+                git_remote_type=None,
+                cookiecutter_context_type=Setupcfg,
             ),
         ),
     ],
@@ -129,6 +153,7 @@ strategies_mapping:
         "tempfile.TemporaryDirectory",
         "tempfile",
         "scaraplate.gitremotes.GitRemote",
+        "scaraplate.cookiecutter.ScaraplateConf",
         '{"strategy": "scaraplate.gitremotes.GitLab"}',
         "42",
     ],
@@ -136,6 +161,31 @@ strategies_mapping:
 def test_get_scaraplate_yaml_invalid_git_remotes(tempdir_path: Path, cls: str) -> None:
     yaml_text = f"""
 git_remote_type: {cls}
+default_strategy: scaraplate.strategies.Overwrite
+strategies_mapping:
+  Jenkinsfile: scaraplate.strategies.Overwrite
+"""
+    (tempdir_path / "scaraplate.yaml").write_text(yaml_text)
+    with pytest.raises(ValueError):
+        get_scaraplate_yaml(tempdir_path)
+
+
+@pytest.mark.parametrize(
+    "cls",
+    [
+        "tempfile.TemporaryDirectory",
+        "tempfile",
+        "scaraplate.gitremotes.GitHub",
+        "scaraplate.cookiecutter.CookieCutterContext",
+        '{"strategy": "scaraplate.cookiecutter.ScaraplateConf"}',
+        "42",
+    ],
+)
+def test_get_scaraplate_yaml_invalid_cookiecutter_context(
+    tempdir_path: Path, cls: str
+) -> None:
+    yaml_text = f"""
+cookiecutter_context_type: {cls}
 default_strategy: scaraplate.strategies.Overwrite
 strategies_mapping:
   Jenkinsfile: scaraplate.strategies.Overwrite

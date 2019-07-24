@@ -11,7 +11,6 @@ import click
 from cookiecutter.main import cookiecutter
 
 from .config import ScaraplateYaml, StrategyNode, get_scaraplate_yaml
-from .parsers import setup_cfg_parser_from_path
 from .template import TemplateMeta, get_template_meta_from_git
 
 
@@ -32,7 +31,9 @@ def rollup(
     target_path.mkdir(parents=True, exist_ok=True, mode=0o755)
     project_dest = get_project_dest(target_path)
 
-    extra_context = get_target_project_cookiecutter_context(target_path)
+    extra_context = get_target_project_cookiecutter_context(
+        target_path, scaraplate_yaml
+    )
 
     with tempfile.TemporaryDirectory() as tempdir_path:
         output_dir = Path(tempdir_path) / "out"
@@ -130,26 +131,27 @@ def get_template_root_and_dir(template_path: Path) -> Tuple[Path, str]:
     return template_root_path, template_dir_name
 
 
-def get_target_project_cookiecutter_context(target_path: Path) -> Dict[str, str]:
-    setup_cfg = target_path / "setup.cfg"
-    if not setup_cfg.exists():
+def get_target_project_cookiecutter_context(
+    target_path: Path, scaraplate_yaml: ScaraplateYaml
+) -> Dict[str, str]:
+    cookiecutter_context = scaraplate_yaml.cookiecutter_context_type(target_path)
+
+    try:
+        context = cookiecutter_context.read()
+    except FileNotFoundError:
         click.echo("setup.cfg doesn't exist, continuing with an empty context")
         return {}
-
-    click.echo("setup.cfg exists, parsing...")
-    section = "tool:cookiecutter_context"
-    configparser = setup_cfg_parser_from_path(setup_cfg)
-    context_configparser = dict(configparser).get(section)
-    # ConfigParser section's pprint doesn't include contents.
-    context = dict(context_configparser or {})
-    if context:
-        click.echo(f"Continuing with the following context:\n{pprint.pformat(context)}")
     else:
-        click.echo(
-            f"The [{section}] section of setup.cfg is empty, "
-            f"continuing with an empty context"
-        )
-    return dict(context)
+        if context:
+            click.echo(
+                f"Continuing with the following context:\n{pprint.pformat(context)}"
+            )
+        else:
+            click.echo(
+                f"No context found in the {cookiecutter_context}, "
+                f"continuing with an empty one"
+            )
+        return dict(context)
 
 
 def apply_generated_project(

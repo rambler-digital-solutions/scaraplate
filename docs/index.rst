@@ -10,6 +10,7 @@ Welcome to scaraplate's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   template
    strategies
 
 

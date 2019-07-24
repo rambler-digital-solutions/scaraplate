@@ -26,6 +26,7 @@ be validated with the inner ``Schema`` class.
 import abc
 import io
 import re
+from collections import OrderedDict
 from configparser import ConfigParser
 from typing import Any, BinaryIO, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
@@ -34,7 +35,6 @@ from marshmallow.validate import Range
 from packaging.requirements import Requirement
 
 from . import fields as scaraplate_fields
-from .parsers import parser_to_pretty_output
 from .template import TemplateMeta
 
 
@@ -402,7 +402,7 @@ class ConfigParserMerge(Strategy):
 
         self.merge_configs(template_parser, target_parser)
 
-        return parser_to_pretty_output(template_parser)
+        return self.parser_to_pretty_output(template_parser)
 
     def parse_config(self, data: BinaryIO, source: str) -> ConfigParser:
         # We don't need to treat the `[DEFAULT]` section as actually
@@ -470,6 +470,39 @@ class ConfigParserMerge(Strategy):
     def ensure_section(self, parser: ConfigParser, section: str) -> None:
         if not parser.has_section(section):
             parser.add_section(section)
+
+    def parser_to_pretty_output(self, parser: ConfigParser) -> BinaryIO:
+        parser = self._sorted_configparser(parser)
+
+        content = self._parser_to_str(parser).replace("\t", " " * 4)
+
+        acc = []
+        for line in content.splitlines():
+            acc.append(line.rstrip())
+        text = "\n".join(acc)
+        return io.BytesIO(text.encode())
+
+    def _sorted_configparser(self, parser: ConfigParser) -> ConfigParser:
+        out = ConfigParser(dict_type=OrderedDict)  # type: ignore
+
+        # `out.read_dict(parser)` might not work here as expected: the keys from
+        # the `[DEFAULT]` section would be set in *all* sections instead of
+        # just the `[DEFAULT]` one.
+        out.read_string(self._parser_to_str(parser))
+
+        for section in out._sections:  # type: ignore
+            section_ = OrderedDict(
+                sorted(out._sections[section].items())  # type: ignore
+            )
+            out._sections[section] = section_  # type: ignore
+
+        out._sections = OrderedDict(sorted(out._sections.items()))  # type: ignore
+        return out
+
+    def _parser_to_str(self, parser: ConfigParser) -> str:
+        buffer = io.StringIO()
+        parser.write(buffer)
+        return buffer.getvalue()
 
     class Schema(NoExtraKeysSchema):
         """Allowed params:

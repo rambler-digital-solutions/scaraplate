@@ -8,6 +8,7 @@ from unittest.mock import sentinel
 import pytest
 
 from scaraplate.config import ScaraplateYaml
+from scaraplate.cookiecutter import ScaraplateConf
 from scaraplate.rollup import (
     get_project_dest,
     get_strategy,
@@ -97,30 +98,18 @@ def test_get_template_root_and_dir(tempdir_path: Path) -> None:
         assert (tempdir_path, "myproject") == get_template_root_and_dir(Path("."))
 
 
-setup_cfg_without_context = """
-[metadata]
-name = holywarrior
-"""
-
-setup_cfg_with_context = """
-[metadata]
-name = holywarrior
-
-
-[tool:cookiecutter_context]
+@pytest.mark.parametrize(
+    "contents, expected_context",
+    [
+        (None, {}),
+        ("", {}),
+        (
+            """
+[cookiecutter_context]
 metadata_author = Usermodel @ Rambler&Co
 coverage_fail_under = 90
 project_monorepo_name =
-"""
-
-
-@pytest.mark.parametrize(
-    "setup_cfg_text, expected_context",
-    [
-        (None, {}),
-        (setup_cfg_without_context, {}),
-        (
-            setup_cfg_with_context,
+""",
             {
                 "metadata_author": "Usermodel @ Rambler&Co",
                 "coverage_fail_under": "90",
@@ -130,12 +119,21 @@ project_monorepo_name =
     ],
 )
 def test_get_target_project_cookiecutter_context(
-    tempdir_path: Path, setup_cfg_text: Optional[str], expected_context: Dict
+    tempdir_path: Path, contents: Optional[str], expected_context: Dict
 ) -> None:
-    if setup_cfg_text is not None:
-        (tempdir_path / "setup.cfg").write_text(setup_cfg_text)
+    if contents is not None:
+        (tempdir_path / ".scaraplate.conf").write_text(contents)
 
-    assert expected_context == get_target_project_cookiecutter_context(tempdir_path)
+    scaraplate_yaml = ScaraplateYaml(
+        default_strategy=sentinel.default,
+        strategies_mapping={},
+        git_remote_type=None,
+        cookiecutter_context_type=ScaraplateConf,
+    )
+
+    assert expected_context == get_target_project_cookiecutter_context(
+        tempdir_path, scaraplate_yaml
+    )
 
 
 def test_get_strategy():
@@ -147,6 +145,7 @@ def test_get_strategy():
             "src/*/__init__.py": sentinel.glob_init,
         },
         git_remote_type=None,
+        cookiecutter_context_type=ScaraplateConf,
     )
 
     assert sentinel.default is get_strategy(scaraplate_yaml, Path("readme"))

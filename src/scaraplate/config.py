@@ -1,10 +1,11 @@
 import collections.abc
 import importlib
 from pathlib import Path
-from typing import Any, Dict, Mapping, NamedTuple, Optional, Type, Union
+from typing import Any, Dict, Mapping, NamedTuple, Optional, Type, Union, cast
 
 import yaml
 
+from .cookiecutter import CookieCutterContext, ScaraplateConf
 from .gitremotes import GitRemote
 from .strategies import Strategy
 
@@ -18,6 +19,7 @@ class ScaraplateYaml(NamedTuple):
     default_strategy: StrategyNode
     strategies_mapping: Mapping[str, StrategyNode]
     git_remote_type: Optional[Type[GitRemote]]
+    cookiecutter_context_type: Type[CookieCutterContext]
 
 
 def get_scaraplate_yaml(template_path: Path) -> ScaraplateYaml:
@@ -33,22 +35,29 @@ def get_scaraplate_yaml(template_path: Path) -> ScaraplateYaml:
 
     git_remote_type_name = config.get("git_remote_type")
     git_remote_type = (
-        class_from_str(git_remote_type_name)
+        class_from_str(git_remote_type_name, ensure_subclass=GitRemote)
         if git_remote_type_name is not None
         else None
     )
-    if git_remote_type is not None and (
-        not issubclass(git_remote_type, GitRemote) or git_remote_type is GitRemote
-    ):
-        raise ValueError(
-            f"`{git_remote_type}` is not a subclass of "
-            f"`scaraplate.gitremotes.GitRemote`"
+    assert git_remote_type is None or issubclass(git_remote_type, GitRemote)  # mypy
+
+    cookiecutter_context_type_name = config.get("cookiecutter_context_type")
+    cookiecutter_context_type = (
+        class_from_str(
+            cookiecutter_context_type_name, ensure_subclass=CookieCutterContext
         )
+        if cookiecutter_context_type_name is not None
+        else cast(Type[CookieCutterContext], ScaraplateConf)  # mypy
+    )
+    assert cookiecutter_context_type is None or issubclass(
+        cookiecutter_context_type, CookieCutterContext
+    )  # mypy
 
     return ScaraplateYaml(
         default_strategy=default_strategy,
         strategies_mapping=strategies_mapping,
         git_remote_type=git_remote_type,
+        cookiecutter_context_type=cookiecutter_context_type,
     )
 
 
@@ -74,15 +83,12 @@ def _parse_strategy_node(path: str, raw: Union[str, Dict[str, Any]]) -> Strategy
     else:
         raise ValueError(f"Unexpected strategy value type for {path}: got {raw!r}")
 
-    cls = class_from_str(strategy)
-    if not issubclass(cls, Strategy) or cls is Strategy:
-        raise ValueError(
-            f"`{cls}` is not a subclass of `scaraplate.strategies.Strategy`"
-        )
+    cls = class_from_str(strategy, ensure_subclass=Strategy)
+    assert issubclass(cls, Strategy)  # mypy
     return StrategyNode(strategy=cls, config=config)
 
 
-def class_from_str(ref: str) -> Type[object]:
+def class_from_str(ref: str, *, ensure_subclass: Optional[Type] = None) -> Type[object]:
     if not isinstance(ref, str) or "." not in ref:
         raise ValueError(
             f"A Python class reference must look like "
@@ -90,4 +96,9 @@ def class_from_str(ref: str) -> Type[object]:
         )
     module_s, cls_s = ref.rsplit(".", 1)
     module = importlib.import_module(module_s)
-    return getattr(module, cls_s)
+    cls = getattr(module, cls_s)
+    if ensure_subclass is not None and (
+        not issubclass(cls, ensure_subclass) or cls is ensure_subclass
+    ):
+        raise ValueError(f"`{cls}` is not a subclass of {ensure_subclass}")
+    return cls
