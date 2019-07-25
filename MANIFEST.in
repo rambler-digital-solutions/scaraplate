@@ -1,3 +1,4 @@
 graft tests
+include LICENSE
 include README.md
 include VERSION
