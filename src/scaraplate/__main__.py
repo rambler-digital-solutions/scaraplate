@@ -29,7 +29,7 @@ def rollup(template_dir: str, target_project_dir: str, no_input: bool) -> None:
     TEMPLATE_DIR must be a local path to the location of a git repo with
     the cookiecutter template to apply. It must contain `scaraplate.yaml`
     file in the root. The TEMPLATE_DIR must be in a git repo, because
-    some strategies require the commit hash at HEAD and the git remote url.
+    some strategies require the commit hash at HEAD and the git remote URL.
 
     TARGET_PROJECT_DIR should point to the directory where the template
     should be applied. Might not exist -- it will be created then.

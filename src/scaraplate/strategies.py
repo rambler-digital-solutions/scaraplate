@@ -1,15 +1,15 @@
 """Strategies do the merging between the files from template and the target.
 
-Strategies are specified in a ``scaraplate.yaml`` file located in the root
-of the template git repo.
+Strategies are specified in the ``scaraplate.yaml`` file located in the root
+of the template dir.
 
-``scaraplate.yaml`` might look like this:
+Sample ``scaraplate.yaml`` excerpt:
 
 ::
 
     default_strategy: scaraplate.strategies.Overwrite
     strategies_mapping:
-      Jenkinsfile: scaraplate.strategies.TemplateHash
+      setup.py: scaraplate.strategies.TemplateHash
       src/*/__init__.py: scaraplate.strategies.IfMissing
       package.json:
         strategy: mypackage.mymodule.MyPackageJson
@@ -19,6 +19,12 @@ of the template git repo.
 
 The strategy should be an importable Python class which implements
 :class:`.Strategy`.
+
+``default_strategy`` and ``strategies_mapping`` keys are the required ones.
+
+The strategy value might be either a string (specifying a Python class),
+or a dict of two keys -- ``strategy`` and ``config``. The first form
+is just a shortcut for specifying a strategy with an empty config.
 
 ``config`` would be passed to the Strategy's ``__init__`` which would
 be validated with the inner ``Schema`` class.
@@ -113,8 +119,8 @@ class Strategy(abc.ABC):
             ``None`` if the file doesn't exist.
         :param template_contents: The file contents from the template
             (after cookiecutter is applied).
-        :param template_meta: Template metadata: the current git commit,
-            git remote url and so on.
+        :param template_meta: Template metadata,
+            see :class:`scaraplate.template.TemplateMeta`.
         :param config: The strategy config from ``scaraplate.yaml``.
             It is validated in this ``__init__`` with the inner
             ``Schema`` class.
@@ -134,7 +140,7 @@ class Strategy(abc.ABC):
         pass
 
     class Schema(NoExtraKeysSchema):
-        """An empty default schema which doesn't allow any parameters."""
+        """An empty default schema which doesn't accept any parameters."""
 
 
 class Overwrite(Strategy):
@@ -234,10 +240,12 @@ class SortedUniqueLines(Strategy):
 class TemplateHash(Strategy):
     """A strategy which appends to the target file a git commit hash of
     the template being applied; and the subsequent applications of
-    the same template for this file are ignored.
+    the same template for this file are ignored until the HEAD commit
+    of the template changes.
 
     This strategy is useful when a file needs to be different from
-    the template, yet it should be manually resynced on template updates.
+    the template but there's no suitable automated strategy yet,
+    so it should be manually resynced on template updates.
 
     Sample ``scaraplate.yaml`` excerpt:
 
@@ -320,12 +328,12 @@ class TemplateHash(Strategy):
         - ``line_comment_start`` [``#``] -- The prefix which should be used
           to start a line comment.
         - ``max_line_length`` [`None`] -- The maximum line length for
-          the new line comments after which the ``max_line_linter_ignore_mark``
-          suffix should be appended.
+          the appended line comments after which
+          the ``max_line_linter_ignore_mark`` suffix should be added.
         - ``max_line_linter_ignore_mark`` [``# noqa``] -- The linter's
-          line ignore mark for the new comment lines longer than
-          ``max_line_length`` columns. The default ``# noqa`` mark
-          silences ``flake8``.
+          line ignore mark for the appended line comments which are
+          longer than ``max_line_length`` columns. The default ``# noqa``
+          mark silences ``flake8``.
         """
 
         line_comment_start = fields.String(missing="#")

@@ -6,6 +6,8 @@ from scaraplate.gitremotes import GitRemote, make_git_remote
 
 
 class TemplateMeta(NamedTuple):
+    """Metadata of the template's git repo status."""
+
     git_project_url: str
     commit_hash: str
     commit_url: str

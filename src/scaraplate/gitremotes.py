@@ -1,3 +1,22 @@
+"""Scaraplate assumes that the template dir is a git repo.
+
+Strategies receive a :class:`scaraplate.template.TemplateMeta` instance
+which contains URLs to the template's project and the HEAD git commit
+on a git remote's web interface (such as GitHub). These URLs might be
+rendered in the target files by the strategies.
+
+Scaraplate has built-in support for some popular git remotes. The remote
+is attempted to be detected automatically, but if that fails, it should
+be specified manually.
+
+
+Sample ``scaraplate.yaml`` excerpt:
+
+::
+
+    git_remote_type: scaraplate.gitremotes.GitHub
+
+"""
 import abc
 import re
 from typing import Optional, Type
@@ -32,19 +51,34 @@ def make_git_remote(
 
 
 class GitRemote(abc.ABC):
+    """Base class for a git remote implementation, which generates http
+    URLs from a git remote (either ssh of http) and a commit hash.
+    """
+
     def __init__(self, remote: str) -> None:
+        """Init the git remote.
+
+        :param remote: A git remote, either ssh or http(s).
+        """
         self.remote = remote
 
     @abc.abstractmethod
     def project_url(self) -> str:
+        """Return a project URL at the given git remote."""
         pass
 
     @abc.abstractmethod
     def commit_url(self, commit_hash: str) -> str:
+        """Return a commit URL at the given git remote.
+
+        :param commit_hash: Git commit hash.
+        """
         pass
 
 
 class GitLab(GitRemote):
+    """GitLab git remote implementation."""
+
     def project_url(self) -> str:
         return _dot_git_remote_to_https(self.remote)
 
@@ -54,6 +88,8 @@ class GitLab(GitRemote):
 
 
 class GitHub(GitRemote):
+    """GitHub git remote implementation."""
+
     def project_url(self) -> str:
         return _dot_git_remote_to_https(self.remote)
 
@@ -63,6 +99,8 @@ class GitHub(GitRemote):
 
 
 class BitBucket(GitRemote):
+    """BitBucket git remote implementation."""
+
     def project_url(self) -> str:
         return _dot_git_remote_to_https(self.remote)
 
