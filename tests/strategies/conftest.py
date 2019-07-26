@@ -75,10 +75,14 @@ def run_strategy_test(
             target_contents=target_contents,
             template_contents=template_contents,
             template_meta=TemplateMeta(
-                git_project_url="https://github.com/rambler-digital-solutions/scaraplate-example-template",
+                git_project_url=(
+                    "https://github.com/rambler-digital-solutions/"
+                    "scaraplate-example-template"
+                ),
                 commit_hash="1111111111111111111111111111111111111111",
                 commit_url=(
-                    "https://github.com/rambler-digital-solutions/scaraplate-example-template"
+                    "https://github.com/rambler-digital-solutions/"
+                    "scaraplate-example-template"
                     "/commit/1111111111111111111111111111111111111111"
                 ),
                 is_git_dirty=is_git_dirty,
