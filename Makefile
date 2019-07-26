@@ -3,7 +3,7 @@ PN := scaraplate
 # PN - Project Version
 PV := `python setup.py -q --version`
 
-PYTHON := python3.6
+PYTHON := python3
 SHELL  := /bin/sh
 
 LINT_TARGET := setup.py src/ tests/
