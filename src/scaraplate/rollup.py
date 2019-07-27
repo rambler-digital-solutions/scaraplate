@@ -63,7 +63,7 @@ replay_dir: "{cookiecutter_config_path / 'replay'}"
 
         with with_cwd(template_root_path):
             # Cookiecutter preserves its template values to
-            # setup.cfg (this is specified in the template).
+            # .scaraplate.conf/setup.cfg (this is specified in the template).
             #
             # These values contain a `_template` key, which points to
             # the template just like it was passed to cookiecutter
@@ -139,17 +139,21 @@ def get_target_project_cookiecutter_context(
     try:
         context = cookiecutter_context.read()
     except FileNotFoundError:
-        click.echo("setup.cfg doesn't exist, continuing with an empty context")
+        click.echo(
+            f"`{cookiecutter_context}` file doesn't exist, "
+            f"continuing with an empty context..."
+        )
         return {}
     else:
         if context:
             click.echo(
-                f"Continuing with the following context:\n{pprint.pformat(context)}"
+                f"Continuing with the following context from "
+                f"the `{cookiecutter_context}` file:\n{pprint.pformat(context)}"
             )
         else:
             click.echo(
-                f"No context found in the {cookiecutter_context}, "
-                f"continuing with an empty one"
+                f"No context found in the `{cookiecutter_context}` file, "
+                f"continuing with an empty one..."
             )
         return dict(context)
 

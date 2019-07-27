@@ -81,7 +81,8 @@ Installation:
 
 To get started with scaraplate, you need to:
 
-1. Prepare a template (see :doc:`template`).
+1. Prepare a template (see :doc:`template` and specifically
+   :ref:`scaraplate_example_template`).
 2. Roll it up on your projects.
 
 
