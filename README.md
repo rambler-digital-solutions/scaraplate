@@ -21,6 +21,6 @@
 Scaraplate is a wrapper around [cookiecutter][cookiecutter]
 which allows to repeatedly rollup project templates onto concrete projects.
 
-[cookiecutter]: https://github.com/audreyr/cookiecutter
+[cookiecutter]: https://github.com/cookiecutter/cookiecutter
 
 Docs: https://scaraplate.readthedocs.io/
