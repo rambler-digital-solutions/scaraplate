@@ -24,6 +24,12 @@ the following properties:
 - cookiecutter context type (see :ref:`cookiecutter_context_types`),
 - template git remote (see :doc:`gitremotes`).
 
+.. note::
+    Neither ``scaraplate.yaml`` nor ``cookiecutter.json`` would get
+    to the target project. These two files exist only in the template
+    repo. The files that would get to the target project are located
+    in the inner ``{{cookiecutter.project_dest}}`` directory of the template repo.
+
 
 ``scaraplate rollup`` has a ``--no-input`` switch which doesn't ask for
 cookiecutter context values. This can be used to automate rollups
