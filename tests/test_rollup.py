@@ -72,6 +72,62 @@ strategies_mapping:
             }
 
 
+def test_add_remove_template_var(tempdir_path, init_git_and_commit):
+    template_path = tempdir_path / "template"
+    target_project_path = tempdir_path / "test"
+
+    # Prepare template
+    cookiecutter_path = template_path / "{{cookiecutter.project_dest}}"
+    cookiecutter_path.mkdir(parents=True)
+    (cookiecutter_path / ".scaraplate.conf").write_text(
+        """[cookiecutter_context]
+{%- for key, value in cookiecutter.items()|sort %}
+{{ key }} = {{ value }}
+{%- endfor %}
+"""
+    )
+    (template_path / "cookiecutter.json").write_text(
+        '{"project_dest": "test", "removed_var": 42}'
+    )
+    (template_path / "scaraplate.yaml").write_text(
+        """
+default_strategy: scaraplate.strategies.Overwrite
+strategies_mapping: {}
+        """
+    )
+    init_git_and_commit(template_path)
+
+    rollup(
+        template_dir=str(template_path),
+        target_project_dir=str(target_project_path),
+        no_input=True,
+    )
+    assert (target_project_path / ".scaraplate.conf").read_text() == (
+        """[cookiecutter_context]
+_template = template
+project_dest = test
+removed_var = 42
+"""
+    )
+
+    # Remove `removed_var` and add `added_var`
+    (template_path / "cookiecutter.json").write_text(
+        '{"project_dest": "test", "added_var": 24}'
+    )
+    rollup(
+        template_dir=str(template_path),
+        target_project_dir=str(target_project_path),
+        no_input=True,
+    )
+    assert (target_project_path / ".scaraplate.conf").read_text() == (
+        """[cookiecutter_context]
+_template = template
+added_var = 24
+project_dest = test
+"""
+    )
+
+
 def test_get_project_dest(tempdir_path: Path) -> None:
     target = tempdir_path / "myproject"
     with with_working_directory(tempdir_path):
