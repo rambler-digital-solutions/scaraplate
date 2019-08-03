@@ -157,7 +157,7 @@ Updating a project from the template
 
 .. _cookiecutter_context_types:
 
-Cookiecutter context types
+Cookiecutter Context Types
 --------------------------
 
 .. automodule:: scaraplate.cookiecutter
@@ -171,7 +171,7 @@ Cookiecutter context types
    .. automethod:: __init__
 
 
-Built-in cookiecutter context types
+Built-in Cookiecutter Context Types
 -----------------------------------
 
 .. autoclass:: scaraplate.cookiecutter.ScaraplateConf

@@ -12,7 +12,7 @@ Strategies
    .. autoclass:: scaraplate.strategies.Strategy.Schema()
 
 
-Built-in strategies
+Built-in Strategies
 -------------------
 
 .. autoclass:: scaraplate.strategies.Overwrite()
