@@ -5,7 +5,7 @@ import os
 import pprint
 import tempfile
 from pathlib import Path
-from typing import BinaryIO, Dict, Optional, Tuple, Union
+from typing import Any, BinaryIO, Dict, Optional, Tuple, Union
 
 import click
 from cookiecutter.main import cookiecutter
@@ -134,7 +134,7 @@ def get_template_root_and_dir(template_path: Path) -> Tuple[Path, str]:
 
 def get_target_project_cookiecutter_context(
     target_path: Path, scaraplate_yaml: ScaraplateYaml
-) -> Dict[str, str]:
+) -> Dict[str, Any]:
     cookiecutter_context = scaraplate_yaml.cookiecutter_context_type(target_path)
 
     try:

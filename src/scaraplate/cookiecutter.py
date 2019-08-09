@@ -15,7 +15,9 @@ might be specified in ``scaraplate.yaml`` like this:
 import abc
 from configparser import ConfigParser
 from pathlib import Path
-from typing import Dict
+from typing import Any, Dict, Union
+
+import yaml
 
 
 def _configparser_from_path(cfg_path: Path) -> ConfigParser:
@@ -38,7 +40,7 @@ class CookieCutterContext(abc.ABC):
         self.target_path = target_path
 
     @abc.abstractmethod
-    def read(self) -> Dict[str, str]:
+    def read(self) -> Dict[str, Any]:
         """Retrieve the context.
 
         If the target file doesn't exist, :class:`FileNotFoundError`
@@ -111,3 +113,33 @@ class SetupCfg(CookieCutterContext):
 
     def __str__(self):
         return f"{self.setup_cfg}"
+
+
+class YAMLConf(CookieCutterContext):
+    """A context reader which retrieves the cookiecutter context from
+    a ``.scaraplate.yaml`` file.
+
+    The ``.scaraplate.yaml`` file must be in the cookiecutter template and could
+    be defined as following:
+
+    ::
+
+        {%- for key, value in cookiecutter.items()|sort %}
+        {%- if value is mapping %}
+        {{ key }}: {{ value }}
+        {%- else %}
+        {{ key }}: "{{ value }}"
+        {%- endif %}
+        {%- endfor %}
+    """
+
+    def __init__(self, target_path: Path) -> None:
+        super().__init__(target_path)
+        self.yaml_conf = target_path / ".scaraplate.yaml"
+
+    def read(self) -> Dict[str, Union[Dict, str]]:
+        context = yaml.safe_load(self.yaml_conf.read_text())
+        return context or {}
+
+    def __str__(self):
+        return f"{self.yaml_conf}"

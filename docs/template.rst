@@ -186,3 +186,6 @@ Built-in Cookiecutter Context Types
 
 .. autoclass:: scaraplate.cookiecutter.SetupCfg
    :show-inheritance:
+
+.. autoclass:: scaraplate.cookiecutter.YAMLConf
+   :show-inheritance:
