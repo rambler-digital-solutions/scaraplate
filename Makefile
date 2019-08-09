@@ -1,6 +1,6 @@
 # PN - Project Name
 PN := scaraplate
-# PN - Project Version
+# PV - Project Version
 PV := `python setup.py -q --version`
 
 PYTHON := python3
