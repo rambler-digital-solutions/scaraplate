@@ -1,0 +1,16 @@
+
+strategy: Ignore
+
+testcases:
+  - name: non_existing_target
+    template: |
+      from template!
+    target: null
+    out: null
+
+  - name: existing_target
+    template: |
+      from template!
+    target: |
+      from target!
+    out: null
