@@ -42,6 +42,7 @@ class YamlItem(pytest.Item):
             out=self.testcase["out"],
             config=self.testcase.get("config", {}),
             raises=self.testcase.get("raises"),
+            extra_context=self.testcase.get("extra_context", {}),
         )
 
     def reportinfo(self):
@@ -56,6 +57,7 @@ def run_strategy_test(
     out: Optional[str],
     config: Dict[str, Any],
     raises: Optional[str],
+    extra_context: Dict[str, str],
 ):
     if target is not None:
         target_contents: Optional[BinaryIO] = io.BytesIO(target.encode())
@@ -88,6 +90,7 @@ def run_strategy_test(
                 is_git_dirty=is_git_dirty,
             ),
             config=config,
+            extra_context=extra_context,
         )
         target_contents = strategy.apply()
         if target_contents:

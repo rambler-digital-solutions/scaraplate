@@ -1,0 +1,19 @@
+
+strategy: IfNewProject
+
+testcases:
+  - name: new_project
+    template: |
+      from template!
+    target: null
+    out: |
+      from template!
+
+  - name: existing_project
+    template: |
+      from template!
+    target: |
+      from target!
+    out: null
+    extra_context:
+      metadata_foo: bar
