@@ -198,11 +198,12 @@ def apply_generated_project(
             )
 
             target_contents = strategy.apply()
-            target_file_path.write_bytes(target_contents.read())
+            if target_contents:
+                target_file_path.write_bytes(target_contents.read())
 
-            # https://stackoverflow.com/a/5337329
-            chmod = file_path.stat().st_mode & 0o777
-            target_file_path.chmod(chmod)
+                # https://stackoverflow.com/a/5337329
+                chmod = file_path.stat().st_mode & 0o777
+                target_file_path.chmod(chmod)
 
 
 def get_strategy(scaraplate_yaml: ScaraplateYaml, path: Path) -> StrategyNode:

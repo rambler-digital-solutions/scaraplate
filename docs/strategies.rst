@@ -27,6 +27,12 @@ Built-in Strategies
    .. autoclass:: scaraplate.strategies.IfMissing.Schema()
 
 
+.. autoclass:: scaraplate.strategies.Ignore()
+   :show-inheritance:
+
+   .. autoclass:: scaraplate.strategies.Ignore.Schema()
+
+
 .. autoclass:: scaraplate.strategies.SortedUniqueLines()
    :show-inheritance:
 

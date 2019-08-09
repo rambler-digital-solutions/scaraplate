@@ -89,5 +89,7 @@ def run_strategy_test(
             ),
             config=config,
         )
-
-        assert out == strategy.apply().read().decode()
+        target_contents = strategy.apply()
+        if target_contents:
+            target_contents = target_contents.read().decode()
+        assert out == target_contents

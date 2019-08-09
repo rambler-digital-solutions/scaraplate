@@ -131,7 +131,7 @@ class Strategy(abc.ABC):
         self.config = self.Schema(strict=True).load(config).data
 
     @abc.abstractmethod
-    def apply(self) -> BinaryIO:
+    def apply(self) -> Optional[BinaryIO]:
         """Apply the Strategy.
 
         :return: The resulting file contents which would overwrite
@@ -162,6 +162,18 @@ class IfMissing(Strategy):
             return self.template_contents
         else:
             return self.target_contents
+
+
+class Ignore(Strategy):
+    """A strategy which simply ignores the template file.
+
+    Cookiecutters might generate some files via hooks.
+    For instance hooks can be used to initialize a VCS repository.
+    In this case, you'll want to ignore VCS generated files on next rollups.
+    """
+
+    def apply(self) -> None:
+        return None
 
 
 class SortedUniqueLines(Strategy):
