@@ -41,6 +41,8 @@ defined in the template just once and then regularly be synced onto your
 projects.
 
 
+.. _how_it_works:
+
 How it works
 ------------
 
