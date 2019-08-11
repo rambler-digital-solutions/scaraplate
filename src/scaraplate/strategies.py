@@ -112,6 +112,7 @@ class Strategy(abc.ABC):
         template_contents: BinaryIO,
         template_meta: TemplateMeta,
         config: Dict[str, Any],
+        extra_context: Dict[str, str],
     ) -> None:
         """Init the strategy.
 
@@ -129,9 +130,10 @@ class Strategy(abc.ABC):
         self.template_contents = template_contents
         self.template_meta = template_meta
         self.config = self.Schema(strict=True).load(config).data
+        self.extra_context = extra_context
 
     @abc.abstractmethod
-    def apply(self) -> BinaryIO:
+    def apply(self) -> Optional[BinaryIO]:
         """Apply the Strategy.
 
         :return: The resulting file contents which would overwrite
@@ -162,6 +164,18 @@ class IfMissing(Strategy):
             return self.template_contents
         else:
             return self.target_contents
+
+
+class IfNewProject(Strategy):
+    """A strategy which writes the file from the template only
+    if it's a new project (no existing cookiecutter context in target).
+    """
+
+    def apply(self) -> Optional[BinaryIO]:
+        if self.extra_context == {}:
+            return self.template_contents
+        else:
+            return None
 
 
 class SortedUniqueLines(Strategy):

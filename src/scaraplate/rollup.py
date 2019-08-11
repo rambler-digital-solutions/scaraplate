@@ -115,6 +115,7 @@ replay_dir: "{cookiecutter_config_path / 'replay'}"
             target_path,
             template_meta=template_meta,
             scaraplate_yaml=scaraplate_yaml,
+            extra_context=extra_context,
         )
 
         click.echo("Done!")
@@ -164,6 +165,7 @@ def apply_generated_project(
     *,
     template_meta: TemplateMeta,
     scaraplate_yaml: ScaraplateYaml,
+    extra_context: Dict[str, str],
 ) -> None:
     generated_path = generated_path.resolve()
 
@@ -195,14 +197,16 @@ def apply_generated_project(
                 template_contents=template_contents,
                 template_meta=template_meta,
                 config=strategy_node.config,
+                extra_context=extra_context,
             )
 
             target_contents = strategy.apply()
-            target_file_path.write_bytes(target_contents.read())
+            if target_contents is not None:
+                target_file_path.write_bytes(target_contents.read())
 
-            # https://stackoverflow.com/a/5337329
-            chmod = file_path.stat().st_mode & 0o777
-            target_file_path.chmod(chmod)
+                # https://stackoverflow.com/a/5337329
+                chmod = file_path.stat().st_mode & 0o777
+                target_file_path.chmod(chmod)
 
 
 def get_strategy(scaraplate_yaml: ScaraplateYaml, path: Path) -> StrategyNode:
