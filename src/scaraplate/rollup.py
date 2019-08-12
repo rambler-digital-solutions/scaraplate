@@ -5,16 +5,28 @@ import os
 import pprint
 import tempfile
 from pathlib import Path
-from typing import BinaryIO, Dict, Optional, Tuple, Union
+from typing import Any, BinaryIO, Dict, Mapping, Optional, Tuple, Union
 
 import click
 from cookiecutter.main import cookiecutter
+from jinja2 import Template
 
 from .config import ScaraplateYaml, StrategyNode, get_scaraplate_yaml
 from .template import TemplateMeta, get_template_meta_from_git
 
 
 __all__ = ("rollup",)
+
+
+def render_strategies_mapping(
+    strategies_mapping: Mapping[str, StrategyNode], context: Dict[str, Any]
+) -> Mapping[str, StrategyNode]:
+    """Render any cookiecutter variables in strategies mapping."""
+    rendered_strategies_mapping = {}
+    for key, value in strategies_mapping.items():
+        rendered_key = Template(key.replace("cookiecutter.", "")).render(context)
+        rendered_strategies_mapping[rendered_key] = value
+    return rendered_strategies_mapping
 
 
 def rollup(
@@ -31,9 +43,7 @@ def rollup(
     target_path.mkdir(parents=True, exist_ok=True, mode=0o755)
     project_dest = get_project_dest(target_path)
 
-    extra_context = get_target_project_cookiecutter_context(
-        target_path, scaraplate_yaml
-    )
+    extra_context = get_cookiecutter_context(target_path, scaraplate_yaml)
 
     with tempfile.TemporaryDirectory() as tempdir_path:
         output_dir = Path(tempdir_path) / "out"
@@ -110,6 +120,15 @@ replay_dir: "{cookiecutter_config_path / 'replay'}"
                 f"the cookiecutter's `project_dest` value?"
             )
 
+        # Load cookiecutter context from temporary dir to ensure it is up-to-date.
+        template_extra_context = get_cookiecutter_context(
+            output_dir.resolve() / project_dest, scaraplate_yaml
+        )
+        rendered_strategies_mapping = render_strategies_mapping(
+            scaraplate_yaml.strategies_mapping, template_extra_context
+        )
+        scaraplate_yaml.strategies_mapping = rendered_strategies_mapping
+
         apply_generated_project(
             output_dir / project_dest,
             target_path,
@@ -131,10 +150,10 @@ def get_template_root_and_dir(template_path: Path) -> Tuple[Path, str]:
     return template_root_path, template_dir_name
 
 
-def get_target_project_cookiecutter_context(
-    target_path: Path, scaraplate_yaml: ScaraplateYaml
-) -> Dict[str, str]:
-    cookiecutter_context = scaraplate_yaml.cookiecutter_context_type(target_path)
+def get_cookiecutter_context(
+    path: Path, scaraplate_yaml: ScaraplateYaml
+) -> Dict[str, Any]:
+    cookiecutter_context = scaraplate_yaml.cookiecutter_context_type(path)
 
     try:
         context = cookiecutter_context.read()

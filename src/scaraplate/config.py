@@ -15,11 +15,34 @@ class StrategyNode(NamedTuple):
     config: Dict[str, Any]
 
 
-class ScaraplateYaml(NamedTuple):
-    default_strategy: StrategyNode
-    strategies_mapping: Mapping[str, StrategyNode]
-    git_remote_type: Optional[Type[GitRemote]]
-    cookiecutter_context_type: Type[CookieCutterContext]
+class ScaraplateYaml:
+    def __init__(
+        self,
+        default_strategy: StrategyNode,
+        strategies_mapping: Mapping[str, StrategyNode],
+        git_remote_type: Optional[Type[GitRemote]],
+        cookiecutter_context_type: Type[CookieCutterContext],
+    ) -> None:
+        self.default_strategy = default_strategy
+        self.strategies_mapping = strategies_mapping
+        self.git_remote_type = git_remote_type
+        self.cookiecutter_context_type = cookiecutter_context_type
+
+    def __repr__(self):
+        return (
+            f"ScaraplateYaml(default_strategy={self.default_strategy}, "
+            f"strategies_mapping={self.strategies_mapping}, "
+            f"git_remote_type={self.git_remote_type}, "
+            f"cookiecutter_context_type={self.cookiecutter_context_type}"
+        )
+
+    def __eq__(self, other):
+        return (
+            self.default_strategy == other.default_strategy
+            and self.strategies_mapping == other.strategies_mapping
+            and self.git_remote_type == other.git_remote_type
+            and self.cookiecutter_context_type == other.cookiecutter_context_type
+        )
 
 
 def get_scaraplate_yaml(template_path: Path) -> ScaraplateYaml:

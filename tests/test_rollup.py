@@ -10,9 +10,9 @@ import pytest
 from scaraplate.config import ScaraplateYaml
 from scaraplate.cookiecutter import ScaraplateConf
 from scaraplate.rollup import (
+    get_cookiecutter_context,
     get_project_dest,
     get_strategy,
-    get_target_project_cookiecutter_context,
     get_template_root_and_dir,
     rollup,
 )
@@ -42,12 +42,16 @@ def test_rollup_fuzzy(tempdir_path, apply_count, init_git_and_commit):
     (cookiecutter_path / "setup.py").write_text("#!/usr/bin/env python\n")
     (cookiecutter_path / "setup.py").chmod(0o755)
     (cookiecutter_path / "sense_vars").write_text("{{ cookiecutter|jsonify }}\n")
-    (template_path / "cookiecutter.json").write_text('{"project_dest": "test"}')
+    (cookiecutter_path / "{{ cookiecutter.foo }}.py").write_text("print('bar')")
+    (template_path / "cookiecutter.json").write_text(
+        '{"project_dest": "test", "foo": "bar"}'
+    )
     (template_path / "scaraplate.yaml").write_text(
         """
 default_strategy: scaraplate.strategies.Overwrite
 strategies_mapping:
   setup.py: scaraplate.strategies.TemplateHash
+  "{{ cookiecutter.foo }}": scaraplate.strategies.Overwrite
         """
     )
     init_git_and_commit(template_path)
@@ -62,12 +66,14 @@ strategies_mapping:
 
         assert "test mock!" == (target_project_path / "README.md").read_text()
         assert 0o755 == (0o777 & (target_project_path / "setup.py").stat().st_mode)
+        assert "print('bar')" == (target_project_path / "bar.py").read_text()
 
         with open((target_project_path / "sense_vars"), "rt") as f:
             assert json.load(f) == {
                 # fmt: off
                 "_template": "template",
                 "project_dest": "test",
+                "foo": "bar",
                 # fmt: on
             }
 
@@ -187,9 +193,7 @@ def test_get_target_project_cookiecutter_context(
         cookiecutter_context_type=ScaraplateConf,
     )
 
-    assert expected_context == get_target_project_cookiecutter_context(
-        tempdir_path, scaraplate_yaml
-    )
+    assert expected_context == get_cookiecutter_context(tempdir_path, scaraplate_yaml)
 
 
 def test_get_strategy():
