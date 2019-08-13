@@ -39,6 +39,12 @@ Built-in Strategies
    .. autoclass:: scaraplate.strategies.TemplateHash.Schema()
 
 
+.. autoclass:: scaraplate.strategies.RenderedTemplateFileHash()
+   :show-inheritance:
+
+   .. autoclass:: scaraplate.strategies.RenderedTemplateFileHash.Schema()
+
+
 .. autoclass:: scaraplate.strategies.ConfigParserMerge()
    :show-inheritance:
 
