@@ -14,7 +14,14 @@ from .config import ScaraplateYaml, StrategyNode, get_scaraplate_yaml
 from .template import TemplateMeta, get_template_meta_from_git
 
 
-__all__ = ("rollup",)
+__all__ = ("rollup", "InvalidScaraplateTemplateError")
+
+
+class InvalidScaraplateTemplateError(Exception):
+    """Something is wrong with the template.
+
+    .. versionadded:: 0.2
+    """
 
 
 def rollup(
@@ -110,6 +117,11 @@ replay_dir: "{cookiecutter_config_path / 'replay'}"
                 f"the cookiecutter's `project_dest` value?"
             )
 
+        with with_cwd(output_dir / project_dest):
+            # Pass a relative path to CookieCutterContext so the __str__
+            # wouldn't include a full absolute path to the temp dir.
+            ensure_cookiecutter_context_exists(Path("."), scaraplate_yaml)
+
         apply_generated_project(
             output_dir / project_dest,
             target_path,
@@ -156,6 +168,28 @@ def get_target_project_cookiecutter_context(
                 f"continuing with an empty one..."
             )
         return dict(context)
+
+
+def ensure_cookiecutter_context_exists(
+    target_path: Path, scaraplate_yaml: ScaraplateYaml
+) -> None:
+    cookiecutter_context = scaraplate_yaml.cookiecutter_context_type(target_path)
+
+    try:
+        context = cookiecutter_context.read()
+    except FileNotFoundError:
+        raise InvalidScaraplateTemplateError(
+            f"cookiecutter context file `{cookiecutter_context}` doesn't exist "
+            f"in the rendered template. Ensure you have added its generation "
+            f"to the template. See docs for {type(cookiecutter_context)}"
+        )
+    else:
+        if not context:
+            raise InvalidScaraplateTemplateError(
+                f"cookiecutter context file `{cookiecutter_context}` is empty "
+                f"in the rendered template. Ensure you have correctly added its "
+                f"generation to the template. See docs for {type(cookiecutter_context)}"
+            )
 
 
 def apply_generated_project(

@@ -10,6 +10,7 @@ import pytest
 from scaraplate.config import ScaraplateYaml
 from scaraplate.cookiecutter import ScaraplateConf
 from scaraplate.rollup import (
+    InvalidScaraplateTemplateError,
     get_project_dest,
     get_strategy,
     get_target_project_cookiecutter_context,
@@ -42,6 +43,13 @@ def test_rollup_fuzzy(tempdir_path, apply_count, init_git_and_commit):
     (cookiecutter_path / "setup.py").write_text("#!/usr/bin/env python\n")
     (cookiecutter_path / "setup.py").chmod(0o755)
     (cookiecutter_path / "sense_vars").write_text("{{ cookiecutter|jsonify }}\n")
+    (cookiecutter_path / ".scaraplate.conf").write_text(
+        """[cookiecutter_context]
+{%- for key, value in cookiecutter.items()|sort %}
+{{ key }} = {{ value }}
+{%- endfor %}
+"""
+    )
     (template_path / "cookiecutter.json").write_text('{"project_dest": "test"}')
     (template_path / "scaraplate.yaml").write_text(
         """
@@ -126,6 +134,36 @@ added_var = 24
 project_dest = test
 """
     )
+
+
+@pytest.mark.parametrize("create_empty", [False, True])
+def test_invalid_template_is_raised_for_missing_cookiecutter_context(
+    create_empty, tempdir_path, init_git_and_commit
+):
+    template_path = tempdir_path / "template"
+    target_project_path = tempdir_path / "test"
+
+    # Prepare template
+    cookiecutter_path = template_path / "{{cookiecutter.project_dest}}"
+    cookiecutter_path.mkdir(parents=True)
+    if create_empty:
+        (cookiecutter_path / ".scaraplate.conf").write_text("")
+    (template_path / "cookiecutter.json").write_text('{"project_dest": "test"}')
+    (template_path / "scaraplate.yaml").write_text(
+        """
+default_strategy: scaraplate.strategies.Overwrite
+strategies_mapping: {}
+        """
+    )
+    init_git_and_commit(template_path)
+
+    with pytest.raises(InvalidScaraplateTemplateError) as excinfo:
+        rollup(
+            template_dir=str(template_path),
+            target_project_dir=str(target_project_path),
+            no_input=True,
+        )
+    assert "cookiecutter context file `.scaraplate.conf` " in str(excinfo.value)
 
 
 def test_get_project_dest(tempdir_path: Path) -> None:
