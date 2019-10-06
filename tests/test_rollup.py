@@ -166,6 +166,63 @@ strategies_mapping: {}
     assert "cookiecutter context file `.scaraplate.conf` " in str(excinfo.value)
 
 
+def test_extra_context(tempdir_path, init_git_and_commit):
+    template_path = tempdir_path / "template"
+    target_project_path = tempdir_path / "test"
+
+    # Prepare template
+    cookiecutter_path = template_path / "{{cookiecutter.project_dest}}"
+    cookiecutter_path.mkdir(parents=True)
+    (cookiecutter_path / "sense_vars").write_text("{{ cookiecutter|jsonify }}\n")
+    (cookiecutter_path / ".scaraplate.conf").write_text(
+        """[cookiecutter_context]
+{%- for key, value in cookiecutter.items()|sort %}
+{{ key }} = {{ value }}
+{%- endfor %}
+"""
+    )
+    (template_path / "cookiecutter.json").write_text(
+        '{"project_dest": "test", "key1": null, "key2": null}'
+    )
+    (template_path / "scaraplate.yaml").write_text(
+        """
+default_strategy: scaraplate.strategies.Overwrite
+strategies_mapping: {}
+        """
+    )
+    init_git_and_commit(template_path)
+
+    # Initial rollup
+    rollup(
+        template_dir=str(template_path),
+        target_project_dir=str(target_project_path),
+        no_input=True,
+        extra_context={"key1": "initial1", "key2": "initial2"},
+    )
+    with open((target_project_path / "sense_vars"), "rt") as f:
+        assert json.load(f) == {
+            "_template": "template",
+            "project_dest": "test",
+            "key1": "initial1",
+            "key2": "initial2",
+        }
+
+    # A second rollup with a different context
+    rollup(
+        template_dir=str(template_path),
+        target_project_dir=str(target_project_path),
+        no_input=True,
+        extra_context={"key1": "second1", "key2": "second2"},
+    )
+    with open((target_project_path / "sense_vars"), "rt") as f:
+        assert json.load(f) == {
+            "_template": "template",
+            "project_dest": "test",
+            "key1": "second1",
+            "key2": "second2",
+        }
+
+
 def test_get_project_dest(tempdir_path: Path) -> None:
     target = tempdir_path / "myproject"
     with with_working_directory(tempdir_path):

@@ -5,7 +5,7 @@ import os
 import pprint
 import tempfile
 from pathlib import Path
-from typing import BinaryIO, Dict, Optional, Tuple, Union
+from typing import BinaryIO, Dict, Mapping, Optional, Tuple, Union
 
 import click
 from cookiecutter.main import cookiecutter
@@ -25,8 +25,22 @@ class InvalidScaraplateTemplateError(Exception):
 
 
 def rollup(
-    template_dir: Union[Path, str], target_project_dir: Union[Path, str], no_input: bool
+    template_dir: Union[Path, str],
+    target_project_dir: Union[Path, str],
+    *,
+    no_input: bool,
+    extra_context: Optional[Mapping[str, str]] = None,
 ) -> None:
+    """The essence of scaraplate: the rollup function, which can be called
+    from Python.
+
+    Raises :class:`.InvalidScaraplateTemplateError`.
+
+    .. versionchanged:: 0.2
+        Added `extra_context` argument which supersedes
+        :class:`scaraplate.cookiecutter.CookieCutterContext` context.
+        Useful to provide context values non-interactively.
+    """
     template_path = Path(template_dir)
     target_path = Path(target_project_dir)
 
@@ -38,9 +52,10 @@ def rollup(
     target_path.mkdir(parents=True, exist_ok=True, mode=0o755)
     project_dest = get_project_dest(target_path)
 
-    extra_context = get_target_project_cookiecutter_context(
+    cookiecutter_context = get_target_project_cookiecutter_context(
         target_path, scaraplate_yaml
     )
+    cookiecutter_context = {**cookiecutter_context, **(extra_context or {})}
 
     with tempfile.TemporaryDirectory() as tempdir_path:
         output_dir = Path(tempdir_path) / "out"
@@ -64,7 +79,7 @@ replay_dir: "{cookiecutter_config_path / 'replay'}"
 """
         )
 
-        extra_context.setdefault("project_dest", project_dest)
+        cookiecutter_context.setdefault("project_dest", project_dest)
 
         template_root_path, template_dir_name = get_template_root_and_dir(template_path)
 
@@ -84,7 +99,7 @@ replay_dir: "{cookiecutter_config_path / 'replay'}"
             cookiecutter(
                 template_dir_name,
                 no_input=no_input,
-                extra_context=extra_context,
+                extra_context=cookiecutter_context,
                 output_dir=str(output_dir.resolve()),
                 config_file=str(cookiecutter_config),
             )
