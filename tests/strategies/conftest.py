@@ -86,6 +86,7 @@ def run_strategy_test(
                     "/commit/1111111111111111111111111111111111111111"
                 ),
                 is_git_dirty=is_git_dirty,
+                head_ref="master",
             ),
             config=config,
         )

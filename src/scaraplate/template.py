@@ -12,6 +12,7 @@ class TemplateMeta(NamedTuple):
     commit_hash: str
     commit_url: str
     is_git_dirty: bool
+    head_ref: Optional[str]
 
 
 def get_template_meta_from_git(
@@ -27,6 +28,7 @@ def get_template_meta_from_git(
         commit_hash=commit_hash,
         commit_url=git_remote.commit_url(commit_hash),
         is_git_dirty=_is_git_dirty(template_path),
+        head_ref=_git_resolve_head(template_path),
     )
 
 
@@ -36,6 +38,14 @@ def _git_head_commit_hash(cwd: Path) -> str:
 
 def _is_git_dirty(cwd: Path) -> bool:
     return bool(_call_git(["git", "status", "--porcelain"], cwd))
+
+
+def _git_resolve_head(cwd: Path) -> Optional[str]:
+    ref = _call_git(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd)
+    if ref == "HEAD":
+        # Detached HEAD (some specific commit has been checked out).
+        return None
+    return ref
 
 
 def _git_remote_origin(cwd: Path) -> str:
