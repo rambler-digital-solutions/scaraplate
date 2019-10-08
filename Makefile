@@ -39,7 +39,7 @@ clean:
 # target: develop - Install package in editable mode with `develop` extras
 develop:
 	@${PYTHON} -m pip install --upgrade pip setuptools wheel
-	@${PYTHON} -m pip install -e .[develop]
+	@${PYTHON} -m pip install -e .[develop,gitlab]
 
 
 .PHONY: dist
