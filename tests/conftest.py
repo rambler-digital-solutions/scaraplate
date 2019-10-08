@@ -29,12 +29,23 @@ def init_git_and_commit(call_git):
 
 @pytest.fixture
 def call_git():
-    def _call_git(shell_cmd: str, cwd: Path) -> None:
+    def _call_git(shell_cmd: str, cwd: Path) -> str:
         env = {
             "USERNAME": "tests_scaraplate",
             "EMAIL": "pytest@scaraplate",
             "PATH": os.getenv("PATH", os.defpath),
         }
-        subprocess.run(shell_cmd, shell=True, check=True, cwd=cwd, env=env, timeout=5)
+        out = subprocess.run(
+            shell_cmd,
+            shell=True,
+            check=True,
+            cwd=cwd,
+            env=env,
+            timeout=5,
+            stdout=subprocess.PIPE,
+        )
+        stdout = out.stdout.decode().strip()
+        print(stdout)
+        return stdout
 
     return _call_git
