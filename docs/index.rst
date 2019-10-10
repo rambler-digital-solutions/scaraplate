@@ -38,7 +38,7 @@ artifacts building tend to greatly vary between the projects.
 Once described in the template which is easy to rollup onto the specific
 projects, projects unification becomes a trivial task.  Everything can be
 defined in the template just once and then regularly be synced onto your
-projects.
+projects, see :doc:`automation`.
 
 
 .. _how_it_works:
@@ -81,6 +81,9 @@ Installation:
     pip install scaraplate
 
 
+Scaraplate also requires ``git`` to be installed in the system
+(see :doc:`template`).
+
 To get started with scaraplate, you need to:
 
 1. Prepare a template (see :doc:`template` and specifically
@@ -109,6 +112,7 @@ of ... well, stuff, (the template) everywhere (the projects).
    template
    strategies
    gitremotes
+   automation
 
 
 Indices and tables
