@@ -31,6 +31,8 @@ the following properties:
     in the inner ``{{cookiecutter.project_dest}}`` directory of the template repo.
 
 
+.. _no_input_mode:
+
 ``scaraplate rollup`` has a ``--no-input`` switch which doesn't ask for
 cookiecutter context values. This can be used to automate rollups
 when the cookiecutter context is already present in the target project

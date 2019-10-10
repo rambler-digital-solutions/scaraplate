@@ -27,7 +27,7 @@ logger = logging.getLogger("scaraplate")
 def ensure_gitlab_is_installed():
     if not gitlab_available:
         raise ImportError(
-            "python-gitlab must be installed in order to use gitlab integrations. "
+            "python-gitlab must be installed in order to use GitLab integration. "
             'Install with `pip install "scaraplate[gitlab]"`.'
         )
 
@@ -50,7 +50,9 @@ def gitlab_project_url(gitlab_url: str, full_project_name: str) -> str:
 
 
 class GitLabCloneTemplateVCS(TemplateVCS):
-    """XXX"""
+    """A class which extends :class:`.GitCloneTemplateVCS` with
+    GitLab-specific ``clone_url`` generation.
+    """
 
     def __init__(self, git_clone: GitCloneTemplateVCS) -> None:
         self._git_clone = git_clone
@@ -73,7 +75,17 @@ class GitLabCloneTemplateVCS(TemplateVCS):
         clone_ref: Optional[str] = None,
         monorepo_inner_path: Optional[Path] = None,
     ) -> Iterator["GitLabCloneTemplateVCS"]:
-        """XXX"""
+        """Same as :meth:`.GitCloneTemplateVCS.clone` except that
+        ``clone_url`` is replaced with ``project_url`` and ``private_token``.
+
+        The ``private_token`` allows to clone private repos, which are
+        visible only for an authenticated user.
+
+        :param project_url: A URL to a GitLab project, e.g.
+            ``https://gitlab.example.org/myorganization/myproject``.
+        :param private_token: GitLab access token,
+            see `<https://docs.gitlab.com/ce/api/#oauth2-tokens>`_.
+        """
 
         with GitCloneTemplateVCS.clone(
             clone_url=gitlab_clone_url(project_url, private_token),
@@ -84,7 +96,10 @@ class GitLabCloneTemplateVCS(TemplateVCS):
 
 
 class GitLabMRProjectVCS(ProjectVCS):
-    """XXX"""
+    """A class which extends :class:`.GitCloneProjectVCS` with
+    GitLab-specific ``clone_url`` generation and opens a GitLab Merge Request
+    after ``git push``.
+    """
 
     def __init__(
         self,
@@ -182,7 +197,65 @@ class GitLabMRProjectVCS(ProjectVCS):
         commit_author: Optional[str] = None,
         **kwargs,
     ) -> Iterator["GitLabMRProjectVCS"]:
-        """XXX"""
+        """Same as :meth:`.GitCloneProjectVCS.clone` with the following
+        exceptions:
+
+        - ``clone_url`` is replaced with ``gitlab_url``, ``full_project_name``
+          and ``private_token``.
+        - A GitLab Merge Request (MR) is opened after a successful
+          ``git push``.
+
+        The ``private_token`` allows to clone private repos, which are
+        visible only for an authenticated user.
+
+        As in :meth:`.GitCloneProjectVCS.clone`, the ``changes_branch``
+        might be the same as ``clone_ref``. In this case no MR will be
+        opened.
+
+        A MR will be created only if there're any changes produced
+        by scaraplate rollup. If a ``changes_branch`` is already present
+        in remote (i.e. there is a previous automatic rollup which wasn't
+        merged yet), there're two possibilities:
+
+        - If one-commit diffs between the remote's ``changes_branch``
+          and the local ``changes_branch`` are the same, nothing
+          is done. It means that a MR already exists and it has the same
+          patch as the one which was just produced locally.
+        - If the diffs are different, the remote branch will be deleted,
+          effectively closing the old MR, and a new one will be pushed
+          instead, and a new MR will be opened.
+
+        The opened MRs are expected to be merged manually.
+
+        :param gitlab_url: A URL to the GitLab instance, e.g.
+            ``https://gitlab.example.org``.
+        :param full_project_name: Project name within gitlab, e.g.
+            ``myorganization/myproject``.
+        :param private_token: GitLab access token,
+            see `<https://docs.gitlab.com/ce/api/#oauth2-tokens>`_.
+        :param mr_title_template: :meth:`str.format` template
+            which is used to produce a MR title.
+            Available format variables are:
+
+            - ``update_time`` [:class:`datetime.datetime`] -- the time
+              of update
+            - ``template_meta`` [:class:`.TemplateMeta`] -- template meta
+              returned by :meth:`.TemplateVCS.template_meta`
+        :param mr_description_markdown_template: :meth:`str.format` template
+            which is used to produce a MR description (which will be rendered
+            as markdown). Available format variables are:
+
+            - ``update_time`` [:class:`datetime.datetime`] -- the time
+              of update
+            - ``scaraplate_version`` [:class:`str`] -- scaraplate package
+              version
+            - ``template_meta`` [:class:`.TemplateMeta`] -- template meta
+              returned by :meth:`.TemplateVCS.template_meta`
+        :param commit_author: Author name to use for ``git commit``, e.g.
+            ``John Doe <john@example.org>``. If ``None``, will be retrieved
+            from GitLab as the name of the currently authenticated user
+            (using ``private_token``).
+        """
 
         ensure_gitlab_is_installed()
         client = gitlab.Gitlab(url=gitlab_url, private_token=private_token, timeout=30)

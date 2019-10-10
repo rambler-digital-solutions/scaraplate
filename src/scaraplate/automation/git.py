@@ -24,7 +24,14 @@ def scaraplate_version() -> str:
 
 
 class GitCloneTemplateVCS(TemplateVCS):
-    """XXX"""
+    """A ready to use :class:`.TemplateVCS` implementation which:
+
+    - Uses git
+    - Clones a git repo with the template to a temporary directory
+      (which is cleaned up afterwards)
+    - Allows to specify an inner dir inside the git repo as the template
+      root (which is useful for monorepos)
+    """
 
     def __init__(self, template_path: Path, template_meta: TemplateMeta) -> None:
         self._template_path = template_path
@@ -47,7 +54,18 @@ class GitCloneTemplateVCS(TemplateVCS):
         clone_ref: Optional[str] = None,
         monorepo_inner_path: Optional[Path] = None,
     ) -> Iterator["GitCloneTemplateVCS"]:
-        """XXX"""
+        """Provides an instance of this class by issuing ``git clone``
+        to a tempdir when entering the context manager. Returns a context
+        manager object which after ``__enter__`` returns an instance
+        of this class.
+
+        :param clone_url: Any valid ``git clone`` url.
+        :param clone_ref: Git ref to checkout after clone
+            (i.e. branch or tag name).
+        :param monorepo_inner_path: Path to the root dir of template
+            relative to the root of the repo. If ``None``, the root of
+            the repo will be used as the root of template.
+        """
 
         with tempfile.TemporaryDirectory() as tmpdir_name:
             tmpdir_path = Path(tmpdir_name).resolve()
@@ -77,7 +95,16 @@ class GitCloneTemplateVCS(TemplateVCS):
 
 
 class GitCloneProjectVCS(ProjectVCS):
-    """XXX"""
+    """A ready to use :class:`.ProjectVCS` implementation which:
+
+    - Uses git
+    - Clones a git repo with the project to a temporary directory
+      (which is cleaned up afterwards)
+    - Allows to specify an inner dir inside the git repo as the project
+      root (which is useful for monorepos)
+    - Implements :meth:`.ProjectVCS.commit_changes` as
+      ``git commit`` + ``git push``.
+    """
 
     def __init__(
         self,
@@ -177,7 +204,37 @@ class GitCloneProjectVCS(ProjectVCS):
             "* template ref: {template_meta.head_ref}\n"
         ),
     ) -> Iterator["GitCloneProjectVCS"]:
-        """XXX"""
+        """Provides an instance of this class by issuing ``git clone``
+        to a tempdir when entering the context manager. Returns a context
+        manager object which after ``__enter__`` returns an instance
+        of this class.
+
+        :param clone_url: Any valid ``git clone`` url.
+        :param clone_ref: Git ref to checkout after clone
+            (i.e. branch or tag name).
+        :param monorepo_inner_path: Path to the root dir of project
+            relative to the root of the repo. If ``None``, the root of
+            the repo will be used as the root of project.
+        :param changes_branch: The branch name where the changes should be
+            pushed in the remote. Might be the same as ``clone_ref``.
+            Note that this branch is never force-pushed. If upon push
+            the branch already exists in remote and its one-commit diff
+            is different from the one-commit diff of the just created
+            local branch, then the remote branch will be deleted and
+            the local branch will be pushed to replace the previous one.
+        :param commit_author: Author name to use for ``git commit``, e.g.
+            ``John Doe <john@example.org>``.
+        :param commit_message_template: :meth:`str.format` template
+            which is used to produce a commit message when committing
+            the changes. Available format variables are:
+
+            - ``update_time`` [:class:`datetime.datetime`] -- the time
+              of update
+            - ``scaraplate_version`` [:class:`str`] -- scaraplate package
+              version
+            - ``template_meta`` [:class:`.TemplateMeta`] -- template meta
+              returned by :meth:`.TemplateVCS.template_meta`
+        """
 
         with tempfile.TemporaryDirectory() as tmpdir_name:
             tmpdir_path = Path(tmpdir_name).resolve()
