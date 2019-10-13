@@ -90,4 +90,5 @@ def run_strategy_test(
             config=config,
         )
 
-        assert out == strategy.apply().read().decode()
+        strategy_out = strategy.apply().read().decode()
+        assert out == strategy_out

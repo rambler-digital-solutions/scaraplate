@@ -203,3 +203,17 @@ testcases:
       preserve_keys:
         - keys: ^extension-pkg$
     raises: marshmallow.exceptions.ValidationError
+
+  - name: with_mixed_newlines
+    template: "\
+      [mysection]\r\
+      mykey = template\r"
+    target: "\
+      [mysection]\r\n\
+      mykey = target\r\n"
+    out: "\
+      [mysection]\r\n\
+      mykey = template\r\n"
+    config:
+      preserve_sections: []
+      preserve_keys: []
