@@ -7,7 +7,7 @@ from unittest.mock import sentinel
 
 import pytest
 
-from scaraplate.config import ScaraplateYaml
+from scaraplate.config import ScaraplateYamlOptions, ScaraplateYamlStrategies
 from scaraplate.cookiecutter import ScaraplateConf
 from scaraplate.rollup import (
     InvalidScaraplateTemplateError,
@@ -223,6 +223,59 @@ strategies_mapping: {}
         }
 
 
+def test_rollup_with_jinja2_mapping(tempdir_path, init_git_and_commit):
+    template_path = tempdir_path / "template"
+    target_project_path = tempdir_path / "test"
+
+    # Prepare template
+    cookiecutter_path = template_path / "{{cookiecutter.project_dest}}"
+    cookiecutter_path.mkdir(parents=True)
+    (cookiecutter_path / "sense_vars").write_text("{{ cookiecutter|jsonify }}\n")
+    (cookiecutter_path / ".scaraplate.conf").write_text(
+        """[cookiecutter_context]
+{%- for key, value in cookiecutter.items()|sort %}
+{{ key }} = {{ value }}
+{%- endfor %}
+"""
+    )
+    (template_path / "cookiecutter.json").write_text(
+        '{"project_dest": "test", "file1": null, "file2": "boop"}'
+    )
+    (template_path / "scaraplate.yaml").write_text(
+        """
+default_strategy: scaraplate.strategies.SortedUniqueLines
+strategies_mapping:
+  '{{ cookiecutter.file1 }}.txt': scaraplate.strategies.IfMissing
+  '{{ cookiecutter.file2 }}.txt': scaraplate.strategies.Overwrite
+        """
+    )
+    (cookiecutter_path / "{{ cookiecutter.file1 }}.txt").write_text("template!")
+    (cookiecutter_path / "{{ cookiecutter.file2 }}.txt").write_text("template!")
+    init_git_and_commit(template_path)
+
+    # Initial rollup
+    rollup(
+        template_dir=str(template_path),
+        target_project_dir=str(target_project_path),
+        no_input=True,
+        extra_context={"file1": "beep"},
+    )
+    assert "template!" == (target_project_path / "beep.txt").read_text()
+    assert "template!" == (target_project_path / "boop.txt").read_text()
+    (target_project_path / "beep.txt").write_text("target!")
+    (target_project_path / "boop.txt").write_text("target!")
+
+    # A second rollup (beep.txt should not be changed)
+    rollup(
+        template_dir=str(template_path),
+        target_project_dir=str(target_project_path),
+        no_input=True,
+        extra_context={"file1": "beep"},
+    )
+    assert "target!" == (target_project_path / "beep.txt").read_text()
+    assert "template!" == (target_project_path / "boop.txt").read_text()
+
+
 def test_get_project_dest(tempdir_path: Path) -> None:
     target = tempdir_path / "myproject"
     with with_working_directory(tempdir_path):
@@ -275,35 +328,32 @@ def test_get_target_project_cookiecutter_context(
     if contents is not None:
         (tempdir_path / ".scaraplate.conf").write_text(contents)
 
-    scaraplate_yaml = ScaraplateYaml(
-        default_strategy=sentinel.default,
-        strategies_mapping={},
-        git_remote_type=None,
-        cookiecutter_context_type=ScaraplateConf,
+    scaraplate_yaml_options = ScaraplateYamlOptions(
+        git_remote_type=None, cookiecutter_context_type=ScaraplateConf
     )
 
     assert expected_context == get_target_project_cookiecutter_context(
-        tempdir_path, scaraplate_yaml
+        tempdir_path, scaraplate_yaml_options
     )
 
 
 def test_get_strategy():
-    scaraplate_yaml = ScaraplateYaml(
+    scaraplate_yaml_strategies = ScaraplateYamlStrategies(
         default_strategy=sentinel.default,
         strategies_mapping={
             "Jenkinsfile": sentinel.jenkinsfile,
             "some/nested/setup.py": sentinel.nested_setup_py,
             "src/*/__init__.py": sentinel.glob_init,
         },
-        git_remote_type=None,
-        cookiecutter_context_type=ScaraplateConf,
     )
 
-    assert sentinel.default is get_strategy(scaraplate_yaml, Path("readme"))
-    assert sentinel.jenkinsfile is get_strategy(scaraplate_yaml, Path("Jenkinsfile"))
+    assert sentinel.default is get_strategy(scaraplate_yaml_strategies, Path("readme"))
+    assert sentinel.jenkinsfile is get_strategy(
+        scaraplate_yaml_strategies, Path("Jenkinsfile")
+    )
     assert sentinel.nested_setup_py is get_strategy(
-        scaraplate_yaml, Path("some/nested/setup.py")
+        scaraplate_yaml_strategies, Path("some/nested/setup.py")
     )
     assert sentinel.glob_init is get_strategy(
-        scaraplate_yaml, Path("src/my_project/__init__.py")
+        scaraplate_yaml_strategies, Path("src/my_project/__init__.py")
     )

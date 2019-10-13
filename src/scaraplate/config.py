@@ -3,11 +3,15 @@ import importlib
 from pathlib import Path
 from typing import Any, Dict, Mapping, NamedTuple, Optional, Type, Union, cast
 
+import jinja2
 import yaml
 
-from .cookiecutter import CookieCutterContext, ScaraplateConf
+from .cookiecutter import CookieCutterContext, CookieCutterContextDict, ScaraplateConf
 from .gitremotes import GitRemote
 from .strategies import Strategy
+
+
+env = jinja2.Environment(undefined=jinja2.StrictUndefined)
 
 
 class StrategyNode(NamedTuple):
@@ -15,23 +19,18 @@ class StrategyNode(NamedTuple):
     config: Dict[str, Any]
 
 
-class ScaraplateYaml(NamedTuple):
-    default_strategy: StrategyNode
-    strategies_mapping: Mapping[str, StrategyNode]
+class ScaraplateYamlOptions(NamedTuple):
     git_remote_type: Optional[Type[GitRemote]]
     cookiecutter_context_type: Type[CookieCutterContext]
 
 
-def get_scaraplate_yaml(template_path: Path) -> ScaraplateYaml:
-    config = yaml.safe_load((template_path / "scaraplate.yaml").read_text())
-    default_strategy = _parse_strategy_node(
-        "default_strategy", config["default_strategy"]
-    )
+class ScaraplateYamlStrategies(NamedTuple):
+    default_strategy: StrategyNode
+    strategies_mapping: Mapping[str, StrategyNode]
 
-    strategies_mapping: Dict[str, StrategyNode] = {
-        str(path): _parse_strategy_node(str(path), strategy_node)
-        for path, strategy_node in config["strategies_mapping"].items()
-    }
+
+def get_scaraplate_yaml_options(template_path: Path) -> ScaraplateYamlOptions:
+    config = yaml.safe_load((template_path / "scaraplate.yaml").read_text())
 
     git_remote_type_name = config.get("git_remote_type")
     git_remote_type = (
@@ -53,11 +52,29 @@ def get_scaraplate_yaml(template_path: Path) -> ScaraplateYaml:
         cookiecutter_context_type, CookieCutterContext
     )  # mypy
 
-    return ScaraplateYaml(
-        default_strategy=default_strategy,
-        strategies_mapping=strategies_mapping,
+    return ScaraplateYamlOptions(
         git_remote_type=git_remote_type,
         cookiecutter_context_type=cookiecutter_context_type,
+    )
+
+
+def get_scaraplate_yaml_strategies(
+    template_path: Path, cookiecutter_context_dict: CookieCutterContextDict
+) -> ScaraplateYamlStrategies:
+    config = yaml.safe_load((template_path / "scaraplate.yaml").read_text())
+    default_strategy = _parse_strategy_node(
+        "default_strategy", config["default_strategy"]
+    )
+
+    strategies_mapping: Dict[str, StrategyNode] = {
+        env.from_string(path).render(
+            cookiecutter=cookiecutter_context_dict
+        ): _parse_strategy_node(str(path), strategy_node)
+        for path, strategy_node in config["strategies_mapping"].items()
+    }
+
+    return ScaraplateYamlStrategies(
+        default_strategy=default_strategy, strategies_mapping=strategies_mapping
     )
 
 

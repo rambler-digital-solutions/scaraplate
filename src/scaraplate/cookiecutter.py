@@ -15,7 +15,10 @@ might be specified in ``scaraplate.yaml`` like this:
 import abc
 from configparser import ConfigParser
 from pathlib import Path
-from typing import Dict
+from typing import Dict, NewType
+
+
+CookieCutterContextDict = NewType("CookieCutterContextDict", Dict[str, str])
 
 
 def _configparser_from_path(cfg_path: Path) -> ConfigParser:
@@ -38,7 +41,7 @@ class CookieCutterContext(abc.ABC):
         self.target_path = target_path
 
     @abc.abstractmethod
-    def read(self) -> Dict[str, str]:
+    def read(self) -> CookieCutterContextDict:
         """Retrieve the context.
 
         If the target file doesn't exist, :class:`FileNotFoundError`
@@ -72,11 +75,11 @@ class ScaraplateConf(CookieCutterContext):
         super().__init__(target_path)
         self.scaraplate_conf = target_path / ".scaraplate.conf"
 
-    def read(self) -> Dict[str, str]:
+    def read(self) -> CookieCutterContextDict:
         configparser = _configparser_from_path(self.scaraplate_conf)
         context_configparser = dict(configparser).get(self.section_name)
         context = dict(context_configparser or {})
-        return context
+        return CookieCutterContextDict(context)
 
     def __str__(self):
         return f"{self.scaraplate_conf}"
@@ -103,11 +106,11 @@ class SetupCfg(CookieCutterContext):
         super().__init__(target_path)
         self.setup_cfg = target_path / "setup.cfg"
 
-    def read(self) -> Dict[str, str]:
+    def read(self) -> CookieCutterContextDict:
         configparser = _configparser_from_path(self.setup_cfg)
         context_configparser = dict(configparser).get(self.section_name)
         context = dict(context_configparser or {})
-        return context
+        return CookieCutterContextDict(context)
 
     def __str__(self):
         return f"{self.setup_cfg}"

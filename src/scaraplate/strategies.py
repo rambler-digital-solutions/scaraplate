@@ -15,6 +15,7 @@ Sample ``scaraplate.yaml`` excerpt:
         strategy: mypackage.mymodule.MyPackageJson
         config:
           my_key: True
+      "src/{{ cookiecutter.myvariable }}.md": scaraplate.strategies.IfMissing
 
 
 The strategy should be an importable Python class which implements
