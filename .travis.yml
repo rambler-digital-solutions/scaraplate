@@ -1,18 +1,15 @@
 language: python
-
-# Python 3.7 requires sudo in Travis.
-# See: https://github.com/travis-ci/travis-ci/issues/9815
-sudo: required
 dist: xenial
 
 python:
   - "3.6"
   - "3.7"
-  - "3.8-dev"
+  - "3.8"
+  - "3.9-dev"
 
 matrix:
   allow_failures:
-    - python: "3.8-dev"
+    - python: "3.9-dev"
 
 install: pip install tox-travis tox
 
@@ -32,10 +29,10 @@ jobs:
 
     - stage: lint
       name: "Code linting"
-      python: "3.6"
+      python: "3.7"
       script: TOXENV=lint tox
 
     - stage: check-docs
       name: "Docs check"
-      python: "3.6"
+      python: "3.7"
       script: TOXENV=check-docs tox
