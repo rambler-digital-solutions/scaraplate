@@ -678,7 +678,7 @@ class SetupCfgMerge(ConfigParserMerge):
               sections containing the keys with requirements.
             + ``keys`` (required) -- a PCRE pattern matching keys
               in the matched sections.
-        """
+        """  # type: ignore
         )
 
         merge_requirements = fields.Nested(ConfigKeySchema, many=True, required=True)
