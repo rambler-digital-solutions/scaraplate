@@ -5,12 +5,19 @@ import os
 import pprint
 import tempfile
 from pathlib import Path
-from typing import BinaryIO, Dict, Mapping, Optional, Tuple, Union
+from typing import BinaryIO, Mapping, Optional, Tuple, Union
 
 import click
 from cookiecutter.main import cookiecutter
 
-from .config import ScaraplateYaml, StrategyNode, get_scaraplate_yaml
+from .config import (
+    ScaraplateYamlOptions,
+    ScaraplateYamlStrategies,
+    StrategyNode,
+    get_scaraplate_yaml_options,
+    get_scaraplate_yaml_strategies,
+)
+from .cookiecutter import CookieCutterContextDict
 from .template import TemplateMeta, get_template_meta_from_git
 
 
@@ -44,18 +51,20 @@ def rollup(
     template_path = Path(template_dir)
     target_path = Path(target_project_dir)
 
-    scaraplate_yaml = get_scaraplate_yaml(template_path)
+    scaraplate_yaml_options = get_scaraplate_yaml_options(template_path)
     template_meta = get_template_meta_from_git(
-        template_path, git_remote_type=scaraplate_yaml.git_remote_type
+        template_path, git_remote_type=scaraplate_yaml_options.git_remote_type
     )
 
     target_path.mkdir(parents=True, exist_ok=True, mode=0o755)
     project_dest = get_project_dest(target_path)
 
     cookiecutter_context = get_target_project_cookiecutter_context(
-        target_path, scaraplate_yaml
+        target_path, scaraplate_yaml_options
     )
-    cookiecutter_context = {**cookiecutter_context, **(extra_context or {})}
+    cookiecutter_context = CookieCutterContextDict(
+        {**cookiecutter_context, **(extra_context or {})}
+    )
 
     with tempfile.TemporaryDirectory() as tempdir_path:
         output_dir = Path(tempdir_path) / "out"
@@ -79,7 +88,9 @@ replay_dir: "{cookiecutter_config_path / 'replay'}"
 """
         )
 
-        cookiecutter_context.setdefault("project_dest", project_dest)
+        cookiecutter_context.setdefault(  # pylint: disable=no-member
+            "project_dest", project_dest
+        )
 
         template_root_path, template_dir_name = get_template_root_and_dir(template_path)
 
@@ -135,13 +146,18 @@ replay_dir: "{cookiecutter_config_path / 'replay'}"
         with with_cwd(output_dir / project_dest):
             # Pass a relative path to CookieCutterContext so the __str__
             # wouldn't include a full absolute path to the temp dir.
-            ensure_cookiecutter_context_exists(Path("."), scaraplate_yaml)
+            cookiecutter_context_dict = get_cookiecutter_context_from_temp_project(
+                Path("."), scaraplate_yaml_options
+            )
 
+        scaraplate_yaml_strategies = get_scaraplate_yaml_strategies(
+            template_path, cookiecutter_context_dict
+        )
         apply_generated_project(
             output_dir / project_dest,
             target_path,
             template_meta=template_meta,
-            scaraplate_yaml=scaraplate_yaml,
+            scaraplate_yaml_strategies=scaraplate_yaml_strategies,
         )
 
         click.echo("Done!")
@@ -159,18 +175,20 @@ def get_template_root_and_dir(template_path: Path) -> Tuple[Path, str]:
 
 
 def get_target_project_cookiecutter_context(
-    target_path: Path, scaraplate_yaml: ScaraplateYaml
-) -> Dict[str, str]:
-    cookiecutter_context = scaraplate_yaml.cookiecutter_context_type(target_path)
+    target_path: Path, scaraplate_yaml_options: ScaraplateYamlOptions
+) -> CookieCutterContextDict:
+    cookiecutter_context = scaraplate_yaml_options.cookiecutter_context_type(
+        target_path
+    )
 
     try:
-        context = cookiecutter_context.read()
+        context: CookieCutterContextDict = cookiecutter_context.read()
     except FileNotFoundError:
         click.echo(
             f"`{cookiecutter_context}` file doesn't exist, "
             f"continuing with an empty context..."
         )
-        return {}
+        return CookieCutterContextDict({})
     else:
         if context:
             click.echo(
@@ -182,16 +200,18 @@ def get_target_project_cookiecutter_context(
                 f"No context found in the `{cookiecutter_context}` file, "
                 f"continuing with an empty one..."
             )
-        return dict(context)
+        return CookieCutterContextDict(dict(context))
 
 
-def ensure_cookiecutter_context_exists(
-    target_path: Path, scaraplate_yaml: ScaraplateYaml
-) -> None:
-    cookiecutter_context = scaraplate_yaml.cookiecutter_context_type(target_path)
+def get_cookiecutter_context_from_temp_project(
+    target_path: Path, scaraplate_yaml_options: ScaraplateYamlOptions
+) -> CookieCutterContextDict:
+    cookiecutter_context = scaraplate_yaml_options.cookiecutter_context_type(
+        target_path
+    )
 
     try:
-        context = cookiecutter_context.read()
+        context: CookieCutterContextDict = cookiecutter_context.read()
     except FileNotFoundError:
         raise InvalidScaraplateTemplateError(
             f"cookiecutter context file `{cookiecutter_context}` doesn't exist "
@@ -205,6 +225,7 @@ def ensure_cookiecutter_context_exists(
                 f"in the rendered template. Ensure you have correctly added its "
                 f"generation to the template. See docs for {type(cookiecutter_context)}"
             )
+    return CookieCutterContextDict(dict(context))
 
 
 def apply_generated_project(
@@ -212,7 +233,7 @@ def apply_generated_project(
     target_path: Path,
     *,
     template_meta: TemplateMeta,
-    scaraplate_yaml: ScaraplateYaml,
+    scaraplate_yaml_strategies: ScaraplateYamlStrategies,
 ) -> None:
     generated_path = generated_path.resolve()
 
@@ -229,7 +250,9 @@ def apply_generated_project(
             file_path = current_root_path / f
             target_file_path = target_root_path / f
 
-            strategy_node = get_strategy(scaraplate_yaml, path_from_template_root / f)
+            strategy_node = get_strategy(
+                scaraplate_yaml_strategies, path_from_template_root / f
+            )
 
             template_contents = io.BytesIO(file_path.read_bytes())
             if target_file_path.exists():
@@ -254,13 +277,15 @@ def apply_generated_project(
             target_file_path.chmod(chmod)
 
 
-def get_strategy(scaraplate_yaml: ScaraplateYaml, path: Path) -> StrategyNode:
+def get_strategy(
+    scaraplate_yaml_strategies: ScaraplateYamlStrategies, path: Path
+) -> StrategyNode:
     for glob_pattern, strategy_node in sorted(
-        scaraplate_yaml.strategies_mapping.items()
+        scaraplate_yaml_strategies.strategies_mapping.items()
     ):
         if fnmatch.fnmatch(str(path), glob_pattern):
             return strategy_node
-    return scaraplate_yaml.default_strategy
+    return scaraplate_yaml_strategies.default_strategy
 
 
 @contextlib.contextmanager
