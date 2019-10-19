@@ -121,3 +121,18 @@ testcases:
     config:
       comment_pattern: '('
     raises: marshmallow.exceptions.ValidationError
+
+  - name: with_mixed_newlines
+    template: "\
+      aaa\n\
+      ccc\n\
+      eee\n"
+    target: "\
+      bbb\r\n\
+      ddd\r\n"
+    out: "\
+      aaa\r\n\
+      bbb\r\n\
+      ccc\r\n\
+      ddd\r\n\
+      eee\r\n"

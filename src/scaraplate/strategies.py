@@ -49,6 +49,25 @@ from .template import TemplateMeta
 Pattern = Any  # re.Pattern since py3.7
 
 
+def detect_newline(
+    *file_contents_args: Optional[BinaryIO], default: bytes = b"\n"
+) -> bytes:
+    for file_contents in file_contents_args:
+        if file_contents is None:
+            continue
+        assert file_contents.tell() == 0
+        line_with_newline = file_contents.readline()
+        file_contents.seek(0)
+
+        line_without_newline = line_with_newline.rstrip(b"\r\n")
+        if len(line_with_newline) != len(line_without_newline):
+            # There's a newline at the end of the line -- use it
+            newline = line_with_newline[len(line_without_newline) :]
+            return newline
+
+    return default
+
+
 class NoExtraKeysSchema(Schema):
     """Marshmallow schema which raises an error for unknown keys
     in the input.
@@ -187,6 +206,8 @@ class SortedUniqueLines(Strategy):
     """
 
     def apply(self) -> BinaryIO:
+        newline = detect_newline(self.target_contents, self.template_contents)
+
         header_lines, out_lines = self.split_header(
             self.template_contents.read().decode().splitlines()
         )
@@ -209,7 +230,7 @@ class SortedUniqueLines(Strategy):
         sorted_lines = [line for line in sorted_lines if line]
         sorted_lines.append("")  # trailing newline
 
-        return io.BytesIO("\n".join(header_lines + sorted_lines).encode())
+        return io.BytesIO(newline.join(map(str.encode, header_lines + sorted_lines)))
 
     def split_header(self, lines: Sequence[str]) -> Tuple[List[str], List[str]]:
         comment_pattern = self.config["comment_pattern"]
@@ -292,10 +313,10 @@ class TemplateHash(Strategy):
 
     """
 
-    def searched_comment_contents(self) -> str:
+    def searched_comment_contents(self) -> List[str]:
         return self.comment_contents()
 
-    def comment_contents(self) -> str:
+    def comment_contents(self) -> List[str]:
         line_comment_start = self.config["line_comment_start"]
 
         comment_lines = [
@@ -306,12 +327,11 @@ class TemplateHash(Strategy):
         else:
             comment_lines.append(f"From {self.template_meta.commit_url}")
 
-        return "".join(f"{line_comment_start} {line}\n" for line in comment_lines)
+        return [f"{line_comment_start} {line}" for line in comment_lines]
 
-    def render_comment(self, comment_contents: str) -> str:
-        comment_lines = comment_contents.split("\n")
+    def render_comment(self, comment_lines: Sequence[str], *, newline: bytes) -> bytes:
         comment_lines = [self._maybe_add_linter_ignore(line) for line in comment_lines]
-        return "\n".join(comment_lines)
+        return b"".join(line.encode("ascii") + newline for line in comment_lines)
 
     def _maybe_add_linter_ignore(self, line: str) -> str:
         line_length = self.config["max_line_length"]
@@ -321,10 +341,12 @@ class TemplateHash(Strategy):
         return line
 
     def apply(self) -> BinaryIO:
-        searched_comment = self.render_comment(self.searched_comment_contents()).encode(
-            "ascii"
+        newline = detect_newline(self.target_contents, self.template_contents)
+
+        searched_comment = self.render_comment(
+            self.searched_comment_contents(), newline=newline
         )
-        appended_comment = self.render_comment(self.comment_contents()).encode("ascii")
+        appended_comment = self.render_comment(self.comment_contents(), newline=newline)
         if self.target_contents is not None:
             target_text = self.target_contents.read()
             if searched_comment in target_text and not self.template_meta.is_git_dirty:
@@ -332,8 +354,11 @@ class TemplateHash(Strategy):
                 self.target_contents.seek(0)
                 return self.target_contents
 
-        out_bytes = self.template_contents.read()
-        out_bytes += b"\n" + appended_comment  # TODO detect newlines type?
+        # Convert template newlines to the target file newlines:
+        template_lines = self.template_contents.read().splitlines()
+        out_bytes = b"".join(line + newline for line in template_lines)
+
+        out_bytes += newline + appended_comment
         return io.BytesIO(out_bytes)
 
     class Schema(NoExtraKeysSchema):
@@ -407,7 +432,7 @@ class RenderedTemplateFileHash(TemplateHash):
 
     """
 
-    def searched_comment_contents(self) -> str:
+    def searched_comment_contents(self) -> List[str]:
         line_comment_start = self.config["line_comment_start"]
 
         rendered_template_file_hash = hashlib.md5(
@@ -419,9 +444,9 @@ class RenderedTemplateFileHash(TemplateHash):
             f"RenderedTemplateFileHash {rendered_template_file_hash}",
         ]
 
-        return "".join(f"{line_comment_start} {line}\n" for line in comment_lines)
+        return [f"{line_comment_start} {line}" for line in comment_lines]
 
-    def comment_contents(self) -> str:
+    def comment_contents(self) -> List[str]:
         line_comment_start = self.config["line_comment_start"]
 
         comment_lines = []
@@ -430,9 +455,9 @@ class RenderedTemplateFileHash(TemplateHash):
         else:
             comment_lines.append(f"From {self.template_meta.commit_url}")
 
-        return self.searched_comment_contents() + "".join(
-            f"{line_comment_start} {line}\n" for line in comment_lines
-        )
+        return self.searched_comment_contents() + [
+            f"{line_comment_start} {line}" for line in comment_lines
+        ]
 
 
 class ConfigParserMerge(Strategy):
@@ -495,6 +520,8 @@ class ConfigParserMerge(Strategy):
     """
 
     def apply(self) -> BinaryIO:
+        newline = detect_newline(self.target_contents, self.template_contents)
+
         template_parser = self.parse_config(self.template_contents, source="<template>")
 
         target_parser: Optional[ConfigParser] = None
@@ -502,9 +529,9 @@ class ConfigParserMerge(Strategy):
         if self.target_contents is not None:
             target_parser = self.parse_config(self.target_contents, source="<target>")
 
-        self.merge_configs(template_parser, target_parser)
+        self.merge_configs(template_parser, target_parser, newline=newline)
 
-        return self.parser_to_pretty_output(template_parser)
+        return self.parser_to_pretty_output(template_parser, newline=newline)
 
     def parse_config(self, data: BinaryIO, source: str) -> ConfigParser:
         # We don't need to treat the `[DEFAULT]` section as actually
@@ -515,11 +542,18 @@ class ConfigParserMerge(Strategy):
         )
 
         text = data.read().decode()
+        # Configparser doesn't like \r\n and \r newlines, so let's replace
+        # them explicitly:
+        text = "".join(f"{line}\n" for line in text.splitlines())
         parser.read_string(text, source=source)
         return parser
 
     def merge_configs(
-        self, template_parser: ConfigParser, target_parser: Optional[ConfigParser]
+        self,
+        template_parser: ConfigParser,
+        target_parser: Optional[ConfigParser],
+        *,
+        newline: bytes,
     ) -> None:
         if target_parser is None:
             return
@@ -573,7 +607,9 @@ class ConfigParserMerge(Strategy):
         if not parser.has_section(section):
             parser.add_section(section)
 
-    def parser_to_pretty_output(self, parser: ConfigParser) -> BinaryIO:
+    def parser_to_pretty_output(
+        self, parser: ConfigParser, *, newline: bytes
+    ) -> BinaryIO:
         parser = self._sorted_configparser(parser)
 
         content = self._parser_to_str(parser).replace("\t", " " * 4)
@@ -581,8 +617,8 @@ class ConfigParserMerge(Strategy):
         acc = []
         for line in content.splitlines():
             acc.append(line.rstrip())
-        text = "\n".join(acc)
-        return io.BytesIO(text.encode())
+        new_contents = newline.join(map(str.encode, acc))
+        return io.BytesIO(new_contents)
 
     def _sorted_configparser(self, parser: ConfigParser) -> ConfigParser:
         out = ConfigParser(dict_type=OrderedDict)  # type: ignore
@@ -685,7 +721,11 @@ class SetupCfgMerge(ConfigParserMerge):
         merge_requirements = fields.Nested(ConfigKeySchema, many=True, required=True)
 
     def merge_configs(
-        self, template_parser: ConfigParser, target_parser: Optional[ConfigParser]
+        self,
+        template_parser: ConfigParser,
+        target_parser: Optional[ConfigParser],
+        *,
+        newline: bytes,
     ) -> None:
         keys: Set[Tuple[str, str]] = set()
 
@@ -704,9 +744,11 @@ class SetupCfgMerge(ConfigParserMerge):
                             keys.add((section, key))
 
         for section, key in keys:
-            self._merge_requirements(template_parser, target_parser, section, key)
+            self._merge_requirements(
+                template_parser, target_parser, section, key, newline=newline
+            )
 
-        super().merge_configs(template_parser, target_parser)
+        super().merge_configs(template_parser, target_parser, newline=newline)
 
     def _merge_requirements(
         self,
@@ -714,6 +756,8 @@ class SetupCfgMerge(ConfigParserMerge):
         target_parser: Optional[ConfigParser],
         section: str,
         key: str,
+        *,
+        newline: bytes,
     ) -> None:
         "Merge in the requirements from template to the target."
 
@@ -738,7 +782,7 @@ class SetupCfgMerge(ConfigParserMerge):
 
         wanted_requirements = sorted(wanted_requirements, key=str.casefold)
 
-        result = self._dump_setupcfg_requirements(wanted_requirements)
+        result = self._dump_setupcfg_requirements(wanted_requirements, newline=newline)
 
         self.ensure_section(template_parser, section)
         template_parser[section][key] = result
@@ -764,7 +808,9 @@ class SetupCfgMerge(ConfigParserMerge):
         requirement = Requirement(full_requirement)
         return requirement.name
 
-    def _dump_setupcfg_requirements(self, requirements: Iterable[str]) -> str:
+    def _dump_setupcfg_requirements(
+        self, requirements: Iterable[str], *, newline: bytes
+    ) -> str:
         # Leave first element empty to produce nicer cfg lists like:
         #   install_requires =
         #       foo==1.0.0
@@ -773,4 +819,4 @@ class SetupCfgMerge(ConfigParserMerge):
         #   install_requires = foo==1.0.0
         #       bar==2.0.0
         acc = [""] + [item for item in requirements]
-        return "\n".join(acc)
+        return newline.decode().join(acc)

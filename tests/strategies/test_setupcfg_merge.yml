@@ -288,3 +288,23 @@ testcases:
         keys: ^dev-
       preserve_keys: []
       preserve_sections: []
+
+  - name: requirements_update_with_mixed_newlines
+    template: "\
+      [options]\n\
+      install_requires =\n\
+      \  Black\n\
+      \  isort==4.3\n"
+    target: "\
+      [options]\r\n\
+      install_requires =\r\n\
+      \  aiohttp==4.3\r\n\
+      \  isorT==1.3\r\n"
+    out: "\
+      [options]\r\n\
+      install_requires =\r\n\
+      \    aiohttp==4.3\r\n\
+      \    Black\r\n\
+      \    isorT==1.3\r\n"
+    config:
+      <<: *default_config

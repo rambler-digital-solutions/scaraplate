@@ -16,3 +16,8 @@ testcases:
       from target!
     out: |
       from target!
+
+  - name: binary_files_with_newlines_are_not_corrupted
+    template: "a\ra"
+    target: "b\nb"
+    out: "b\nb"

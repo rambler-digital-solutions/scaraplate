@@ -1,0 +1,8 @@
+
+strategy: Overwrite
+
+testcases:
+  - name: binary_files_with_newlines_are_not_corrupted
+    template: "a\ra"
+    target: "b\nb"
+    out: "a\ra"
