@@ -62,12 +62,14 @@ scaraplate in the target project.
 The key component of scaraplate are the `strategies`.
 
 Note that none of the strategies use git history or any git-like
-merging. In fact, scaraplate makes no assumptions about the code
-versioning system used by the target project.
+merging. In fact, scaraplate strategies make no assumptions about
+the code versioning system used by the target project.
 Instead, the merging between the files is defined solely by `strategies`
 which generate the output based on the two files and the settings in
 the ``scaraplate.yaml``.
 
+Scaraplate is quite extensible. Many parts are replaceable with custom
+implementations in Python.
 
 Quickstart
 ----------
