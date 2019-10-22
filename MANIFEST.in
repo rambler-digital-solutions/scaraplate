@@ -3,4 +3,5 @@ global-exclude __pycache__
 graft tests
 include LICENSE
 include README.md
+include src/scaraplate/py.typed
 include VERSION
