@@ -1,6 +1,7 @@
 import contextlib
 import datetime
 import logging
+import os
 import tempfile
 import uuid
 from pathlib import Path
@@ -70,8 +71,9 @@ class GitCloneTemplateVCS(TemplateVCS):
         with tempfile.TemporaryDirectory() as tmpdir_name:
             tmpdir_path = Path(tmpdir_name).resolve()
             template_path = tmpdir_path / "scaraplate_template"
+            template_path.mkdir()
 
-            Git.clone(
+            git = Git.clone(
                 clone_url,
                 target_path=template_path,
                 ref=clone_ref,
@@ -80,6 +82,7 @@ class GitCloneTemplateVCS(TemplateVCS):
                 # would contain them, and we don't want that.
                 strip_credentials_from_remote=True,
             )
+            template_path = git.cwd
 
             if monorepo_inner_path is not None:
                 template_path = template_path / monorepo_inner_path
@@ -239,8 +242,10 @@ class GitCloneProjectVCS(ProjectVCS):
         with tempfile.TemporaryDirectory() as tmpdir_name:
             tmpdir_path = Path(tmpdir_name).resolve()
             project_path = tmpdir_path / "scaraplate_project"
+            project_path.mkdir()
 
             git = Git.clone(clone_url, target_path=project_path, ref=clone_ref)
+            project_path = git.cwd
 
             if monorepo_inner_path is not None:
                 project_path = project_path / monorepo_inner_path
@@ -323,20 +328,24 @@ class Git:
         remote = "origin"
         clone_url_without_creds = strip_credentials_from_git_remote(clone_url)
 
-        args = ["clone", clone_url, target_path.name]
+        args = ["clone", clone_url]
 
         if ref is not None:
             # git-clone(1) explicitly mentions that both branches and tags
             # are allowed in the `--branch`.
             args.extend(["--branch", ref])
 
-        _call_git(args, cwd=target_path.parent)
+        _call_git(args, cwd=target_path)
 
-        if not target_path.is_dir():
+        actual_items_in_target_path = os.listdir(target_path)
+        if len(actual_items_in_target_path) != 1:
             raise RuntimeError(
-                f"Expected `git` to clone '{clone_url_without_creds}' to "
-                f"'{target_path}', but it didn't"
+                f"Expected `git clone` to create exactly one directory. "
+                f"Directories in the target: {actual_items_in_target_path}"
             )
+
+        cloned_dir, = actual_items_in_target_path
+        target_path = target_path / cloned_dir
 
         if strip_credentials_from_remote:
             _call_git(

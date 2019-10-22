@@ -1,4 +1,5 @@
 import contextlib
+import json
 from pathlib import Path
 
 import pytest
@@ -175,6 +176,43 @@ def test_automatic_rollup_with_existing_target_branch(
     assert target_branch_commit_hash != target_branch_commit_hash_2
     # master should not be changed:
     assert master_commit_hash == master_commit_hash_2
+
+
+@pytest.mark.parametrize("monorepo_inner_path", ["inner", None])
+def test_automatic_rollup_preserves_template_dirname(
+    template_bare_git_repo: Path,
+    project_bare_git_repo: Path,
+    monorepo_inner_path,
+    call_git,
+):
+    target_branch = "update"
+
+    if monorepo_inner_path is not None:
+        convert_bare_to_monorepo(monorepo_inner_path, template_bare_git_repo, call_git)
+
+    automatic_rollup(
+        template_vcs_ctx=GitCloneTemplateVCS.clone(
+            clone_url=str(template_bare_git_repo),  # a clonable remote URL
+            monorepo_inner_path=monorepo_inner_path,
+        ),
+        project_vcs_ctx=GitCloneProjectVCS.clone(
+            clone_url=str(project_bare_git_repo),  # a clonable remote URL
+            changes_branch=target_branch,
+            commit_author="pytest <tests@none>",
+        ),
+        extra_context={"key1": "value1", "key2": "value2"},
+    )
+
+    cookiecutter_context_text = call_git(
+        f"git show {target_branch}:sense_vars", cwd=project_bare_git_repo
+    )
+
+    assert json.loads(cookiecutter_context_text) == {
+        "_template": monorepo_inner_path if monorepo_inner_path else "remote_template",
+        "project_dest": "remote_project",
+        "key1": "value1",
+        "key2": "value2",
+    }
 
 
 @pytest.mark.parametrize(
