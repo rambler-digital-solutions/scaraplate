@@ -47,6 +47,9 @@ def rollup(
         Added `extra_context` argument which supersedes
         :class:`scaraplate.cookiecutter.CookieCutterContext` context.
         Useful to provide context values non-interactively.
+
+        ``scaraplate.yaml`` now supports cookiecutter variables
+        in the `strategies_mapping`` keys.
     """
     template_path = Path(template_dir)
     target_path = Path(target_project_dir)

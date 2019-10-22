@@ -35,6 +35,8 @@ def automatic_rollup(
     If the target project contains any changes (as reported by
     :meth:`.ProjectVCS.is_dirty`), they will be committed by calling
     :meth:`.ProjectVCS.commit_changes`.
+
+    .. versionadded:: 0.2
     """
 
     with ExitStack() as stack:
