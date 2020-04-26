@@ -14,7 +14,7 @@ Welcome to scaraplate's documentation!
 Introduction
 ------------
 
-Scaraplate is a wrapper around :doc:`cookiecutter <cookiecutter_rtd:readme>`
+Scaraplate is a wrapper around :doc:`cookiecutter <cookiecutter_rtd:README>`
 which allows to repeatedly rollup project templates onto concrete projects.
 
 Cookiecutter is a great tool which allows to create projects from templates.

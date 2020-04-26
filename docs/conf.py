@@ -86,6 +86,6 @@ html_static_path = ['_static']
 # -- Extension configuration -------------------------------------------------
 
 intersphinx_mapping = {
-    "cookiecutter_rtd": ("https://cookiecutter.readthedocs.io/en/stable/", None),
+    "cookiecutter_rtd": ("https://cookiecutter.readthedocs.io/en/1.7.2/", None),
     "python": ("https://docs.python.org/", None),
 }
