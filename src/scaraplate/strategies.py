@@ -43,6 +43,7 @@ from marshmallow.validate import Range
 from packaging.requirements import Requirement
 
 from . import fields as scaraplate_fields
+from .compat import marshmallow_load_data, marshmallow_pass_original_for_many
 from .template import TemplateMeta
 
 
@@ -78,17 +79,13 @@ class NoExtraKeysSchema(Schema):
     """
 
     @validates_schema(pass_original=True)
-    def check_unknown_fields(self, data, original_data):
+    def check_unknown_fields(self, data, original_data, **kwargs):
         # https://marshmallow.readthedocs.io/en/stable/extending.html#validating-original-input-data  # noqa
-        if not self.many:
-            # `many=True` field would contain a list here, otherwise
-            # it would be a dict.
-            original_data = [original_data]
-
+        original_data = marshmallow_pass_original_for_many(original_data, self.many)
         for item in original_data:
-            unknown = set(item) - set(self.fields)
+            unknown = set(item.keys()) - set(self.fields)
             if unknown:
-                raise ValidationError("Unknown field", unknown)
+                raise ValidationError({field: "Unknown field" for field in unknown})
 
 
 class ConfigKeySchema(NoExtraKeysSchema):
@@ -149,7 +146,7 @@ class Strategy(abc.ABC):
         self.target_contents = target_contents
         self.template_contents = template_contents
         self.template_meta = template_meta
-        self.config = self.Schema(strict=True).load(config).data
+        self.config = marshmallow_load_data(self.Schema, config)
 
     @abc.abstractmethod
     def apply(self) -> BinaryIO:

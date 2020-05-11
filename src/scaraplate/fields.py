@@ -7,7 +7,7 @@ class Pattern(fields.Field):
     def _serialize(self, value, attr, obj):
         self.fail("not implemented")
 
-    def _deserialize(self, value, attr, data):
+    def _deserialize(self, value, attr, data, **kwargs):
         if value is None:
             return None
 
