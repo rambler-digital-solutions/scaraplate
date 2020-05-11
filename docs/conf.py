@@ -89,3 +89,6 @@ intersphinx_mapping = {
     "cookiecutter_rtd": ("https://cookiecutter.readthedocs.io/en/1.7.2/", None),
     "python": ("https://docs.python.org/", None),
 }
+
+# https://github.com/sphinx-doc/sphinx/pull/6397
+autodoc_typehints = "none"
