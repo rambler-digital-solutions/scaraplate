@@ -1,7 +1,7 @@
 try:
     from marshmallow import __version_info__
 
-    is_marshmallow_3 = __version_info__[0] >= 3
+    is_marshmallow_3 = __version_info__[0] >= 3  # type: ignore
 except ImportError:  # pragma: no cover
     is_marshmallow_3 = False
 
