@@ -1,6 +1,16 @@
 CHANGES
 =======
 
+0.3
+---
+2020-05-11
+
+Packaging changes:
+
+* Add support for PyYAML 5
+* Add support for marshmallow 3
+
+
 0.2
 ---
 2019-10-22
@@ -12,7 +22,7 @@ New features:
 * Raise an error when the cookiecutter context file is not generated (#9)
 * Add support for extra_context to cli (like in `cookiecutter` command) (#10)
 * Add jinja2 support to strategies mapping (#13)
-* Add automation via Python + built-in support for Git-based projects 
+* Add automation via Python + built-in support for Git-based projects
   and GitLab (#11)
 
 Behaviour changes:
