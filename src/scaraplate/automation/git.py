@@ -344,7 +344,7 @@ class Git:
                 f"Directories in the target: {actual_items_in_target_path}"
             )
 
-        cloned_dir, = actual_items_in_target_path
+        (cloned_dir,) = actual_items_in_target_path
         target_path = target_path / cloned_dir
 
         if strip_credentials_from_remote:
