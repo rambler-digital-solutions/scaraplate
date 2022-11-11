@@ -1,13 +1,13 @@
 # scaraplate
 
-[![Travis CI Build status][travis-badge]][travis-link]
+[![GitHub Actions Build status][gha-badge]][gha-link]
 [![scaraplate on pypi][pypi-badge]][pypi-link]
 [![docs at readthedocs][docs-badge]][docs-link]
 [![Licensed under MIT][license-badge]][license-link]
 [![Code style: black][black-badge]][black-link]
 
-[travis-badge]: https://travis-ci.org/rambler-digital-solutions/scaraplate.svg
-[travis-link]: https://travis-ci.org/rambler-digital-solutions/scaraplate
+[gha-badge]: https://img.shields.io/github/workflow/status/rambler-digital-solutions/scaraplate/CI
+[gha-link]: https://github.com/rambler-digital-solutions/scaraplate/actions
 [pypi-badge]: https://img.shields.io/pypi/v/scaraplate.svg
 [pypi-link]: https://pypi.org/project/scaraplate/
 [docs-badge]: https://readthedocs.org/projects/scaraplate/badge/?version=latest
