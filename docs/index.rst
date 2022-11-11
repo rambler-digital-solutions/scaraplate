@@ -74,7 +74,7 @@ implementations in Python.
 Quickstart
 ----------
 
-`scaraplate` requires Python 3.6 or newer.
+`scaraplate` requires Python 3.7 or newer.
 
 Installation:
 
