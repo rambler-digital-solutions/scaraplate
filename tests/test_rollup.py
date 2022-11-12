@@ -3,7 +3,7 @@ import json
 import os
 from pathlib import Path
 from typing import Dict, Optional
-from unittest.mock import sentinel
+from unittest.mock import ANY, sentinel
 
 import pytest
 
@@ -46,7 +46,9 @@ def test_rollup_fuzzy(tempdir_path, apply_count, init_git_and_commit):
     (cookiecutter_path / ".scaraplate.conf").write_text(
         """[cookiecutter_context]
 {%- for key, value in cookiecutter.items()|sort %}
+{%- if key not in ('_output_dir',) %}
 {{ key }} = {{ value }}
+{%- endif %}
 {%- endfor %}
 """
     )
@@ -73,6 +75,7 @@ strategies_mapping:
 
         with open((target_project_path / "sense_vars"), "rt") as f:
             assert json.load(f) == {
+                "_output_dir": ANY,
                 "_template": "template",
                 "project_dest": "test",
             }
@@ -88,7 +91,9 @@ def test_add_remove_template_var(tempdir_path, init_git_and_commit):
     (cookiecutter_path / ".scaraplate.conf").write_text(
         """[cookiecutter_context]
 {%- for key, value in cookiecutter.items()|sort %}
+{%- if key not in ('_output_dir',) %}
 {{ key }} = {{ value }}
+{%- endif %}
 {%- endfor %}
 """
     )
@@ -175,7 +180,9 @@ def test_extra_context(tempdir_path, init_git_and_commit):
     (cookiecutter_path / ".scaraplate.conf").write_text(
         """[cookiecutter_context]
 {%- for key, value in cookiecutter.items()|sort %}
+{%- if key not in ('_output_dir',) %}
 {{ key }} = {{ value }}
+{%- endif %}
 {%- endfor %}
 """
     )
@@ -199,6 +206,7 @@ strategies_mapping: {}
     )
     with open((target_project_path / "sense_vars"), "rt") as f:
         assert json.load(f) == {
+            "_output_dir": ANY,
             "_template": "template",
             "project_dest": "test",
             "key1": "initial1",
@@ -214,6 +222,7 @@ strategies_mapping: {}
     )
     with open((target_project_path / "sense_vars"), "rt") as f:
         assert json.load(f) == {
+            "_output_dir": ANY,
             "_template": "template",
             "project_dest": "test",
             "key1": "second1",
@@ -232,7 +241,9 @@ def test_rollup_with_jinja2_mapping(tempdir_path, init_git_and_commit):
     (cookiecutter_path / ".scaraplate.conf").write_text(
         """[cookiecutter_context]
 {%- for key, value in cookiecutter.items()|sort %}
+{%- if key not in ('_output_dir',) %}
 {{ key }} = {{ value }}
+{%- endif %}
 {%- endfor %}
 """
     )

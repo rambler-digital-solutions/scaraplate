@@ -61,7 +61,9 @@ class ScaraplateConf(CookieCutterContext):
 
         [cookiecutter_context]
         {%- for key, value in cookiecutter.items()|sort %}
+        {%- if key not in ('_output_dir',) %}
         {{ key }} = {{ value }}
+        {%- endif %}
         {%- endfor %}
 
     Cookiecutter context would be rendered in the target project by this
@@ -95,7 +97,9 @@ class SetupCfg(CookieCutterContext):
 
         [tool:cookiecutter_context]
         {%- for key, value in cookiecutter.items()|sort %}
+        {%- if key not in ('_output_dir',) %}
         {{ key }} = {{ value }}
+        {%- endif %}
         {%- endfor %}
     """
 

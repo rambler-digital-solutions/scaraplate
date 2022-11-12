@@ -18,16 +18,19 @@ def convert_git_repo_to_bare(call_git, *, cwd: Path) -> None:
 
 
 @pytest.fixture
-def template_bare_git_repo(tempdir_path, init_git_and_commit, call_git):
+def template_bare_git_repo(request, tempdir_path, init_git_and_commit, call_git):
     template_path = tempdir_path / "remote_template"
 
     cookiecutter_path = template_path / "{{cookiecutter.project_dest}}"
     cookiecutter_path.mkdir(parents=True)
-    (cookiecutter_path / "sense_vars").write_text("{{ cookiecutter|jsonify }}\n")
+    if request.node.get_closest_marker("template_with_sense_vars") is not None:
+        (cookiecutter_path / "sense_vars").write_text("{{ cookiecutter|jsonify }}\n")
     (cookiecutter_path / ".scaraplate.conf").write_text(
         """[cookiecutter_context]
 {%- for key, value in cookiecutter.items()|sort %}
+{%- if key not in ('_output_dir',) %}
 {{ key }} = {{ value }}
+{%- endif %}
 {%- endfor %}
 """
     )

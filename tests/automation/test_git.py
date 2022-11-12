@@ -1,6 +1,7 @@
 import contextlib
 import json
 from pathlib import Path
+from unittest.mock import ANY
 
 import pytest
 
@@ -120,7 +121,9 @@ def test_automatic_rollup(
     target_branch_commit_hash_2 = call_git(
         f"git rev-parse --verify {target_branch}", cwd=project_bare_git_repo
     )
-    assert target_branch_commit_hash == target_branch_commit_hash_2
+    assert target_branch_commit_hash == target_branch_commit_hash_2, call_git(
+        f"git show -p {target_branch}", cwd=project_bare_git_repo
+    )
 
 
 def test_automatic_rollup_with_existing_target_branch(
@@ -179,6 +182,7 @@ def test_automatic_rollup_with_existing_target_branch(
 
 
 @pytest.mark.parametrize("monorepo_inner_path", ["inner", None])
+@pytest.mark.template_with_sense_vars
 def test_automatic_rollup_preserves_template_dirname(
     template_bare_git_repo: Path,
     project_bare_git_repo: Path,
@@ -208,6 +212,7 @@ def test_automatic_rollup_preserves_template_dirname(
     )
 
     assert json.loads(cookiecutter_context_text) == {
+        "_output_dir": ANY,
         "_template": monorepo_inner_path if monorepo_inner_path else "remote_template",
         "project_dest": "remote_project",
         "key1": "value1",
