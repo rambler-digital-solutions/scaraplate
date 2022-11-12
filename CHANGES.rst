@@ -1,6 +1,43 @@
 CHANGES
 =======
 
+0.4
+---
+2022-11-12
+
+Packaging changes:
+
+* Drop support for Python 3.6
+* Add support for Python 3.9, 3.10, 3.11
+* Add support for click>=8, jinja2 3, PyYAML>=6
+* Add support for cookiecutter>=2.0.1 (see notes below)
+
+Cookiecutter 2.0.1:
+
+In 2.0.1 the `cookiecutter` jinja2 variable has been extended with a new
+`_output_dir` key. In scaraplate this is some random dir in a temp space,
+so having it in the template context is unwanted, because it would cause
+the target project to be updated with the random tempdir on each rollup.
+
+So in order to support cookiecutter>=2.0.1 you need to make a change in
+your scaraplate template, where you write your cookiecutter context.
+Suppose you have the following in your `.scaraplate.conf`:
+
+    [cookiecutter_context]
+    {%- for key, value in cookiecutter.items()|sort %}
+    {{ key }} = {{ value }}
+    {%- endfor %}
+
+Then you need to add an exclusion for the `_output_dir` var, like this:
+
+    [cookiecutter_context]
+    {%- for key, value in cookiecutter.items()|sort %}
+    {%- if key not in ('_output_dir',) %}
+    {{ key }} = {{ value }}
+    {%- endif %}
+    {%- endfor %}
+
+
 0.3
 ---
 2020-05-11
