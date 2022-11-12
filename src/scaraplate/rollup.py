@@ -20,7 +20,6 @@ from .config import (
 from .cookiecutter import CookieCutterContextDict
 from .template import TemplateMeta, get_template_meta_from_git
 
-
 __all__ = ("rollup", "InvalidScaraplateTemplateError")
 
 

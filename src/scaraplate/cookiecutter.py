@@ -17,7 +17,6 @@ from configparser import ConfigParser
 from pathlib import Path
 from typing import Dict, NewType
 
-
 CookieCutterContextDict = NewType("CookieCutterContextDict", Dict[str, str])
 
 
@@ -78,7 +77,7 @@ class ScaraplateConf(CookieCutterContext):
     def read(self) -> CookieCutterContextDict:
         configparser = _configparser_from_path(self.scaraplate_conf)
         context_configparser = dict(configparser).get(self.section_name)
-        context = dict(context_configparser or {})
+        context: Dict[str, str] = dict(context_configparser or {})
         return CookieCutterContextDict(context)
 
     def __str__(self):
@@ -109,7 +108,7 @@ class SetupCfg(CookieCutterContext):
     def read(self) -> CookieCutterContextDict:
         configparser = _configparser_from_path(self.setup_cfg)
         context_configparser = dict(configparser).get(self.section_name)
-        context = dict(context_configparser or {})
+        context: Dict[str, str] = dict(context_configparser or {})
         return CookieCutterContextDict(context)
 
     def __str__(self):

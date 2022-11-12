@@ -12,7 +12,6 @@ from scaraplate.automation.git import (
 )
 from scaraplate.template import TemplateMeta
 
-
 try:
     import gitlab
 except ImportError:

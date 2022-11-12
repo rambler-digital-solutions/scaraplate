@@ -14,7 +14,6 @@ from scaraplate.automation.base import ProjectVCS, TemplateVCS
 from scaraplate.config import get_scaraplate_yaml_options
 from scaraplate.template import TemplateMeta, _call_git, get_template_meta_from_git
 
-
 __all__ = ("GitCloneProjectVCS", "GitCloneTemplateVCS")
 
 logger = logging.getLogger("scaraplate")
@@ -322,7 +321,7 @@ class Git:
         clone_url: str,
         *,
         target_path: Path,
-        ref: str = None,
+        ref: Optional[str] = None,
         strip_credentials_from_remote: bool = False,
     ) -> "Git":
         remote = "origin"

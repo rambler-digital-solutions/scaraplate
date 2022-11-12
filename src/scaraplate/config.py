@@ -10,7 +10,6 @@ from .cookiecutter import CookieCutterContext, CookieCutterContextDict, Scarapla
 from .gitremotes import GitRemote
 from .strategies import Strategy
 
-
 env = jinja2.Environment(undefined=jinja2.StrictUndefined)
 
 

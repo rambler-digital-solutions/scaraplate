@@ -7,19 +7,16 @@ import subprocess
 from setuptools import setup
 from setuptools.command.sdist import sdist as sdist_orig
 
-
 ROOT = os.path.dirname(__file__)
 VERSION = os.path.join(ROOT, "VERSION")
 
 
 def main():
     return setup(
-        # fmt: off
         cmdclass={
             "sdist": sdist,
         },
         version=project_version(),
-        # fmt: on
     )
 
 

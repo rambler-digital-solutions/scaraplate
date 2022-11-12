@@ -34,6 +34,7 @@ def call_git():
             "USERNAME": "tests_scaraplate",
             "EMAIL": "pytest@scaraplate",
             "PATH": os.getenv("PATH", os.defpath),
+            "GIT_CONFIG_NOSYSTEM": "1",
         }
         out = subprocess.run(
             shell_cmd,

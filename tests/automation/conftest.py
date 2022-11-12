@@ -120,13 +120,13 @@ class HttpServerThread(threading.Thread):
                         body = self.rfile.read(
                             int(self.headers.get("content-length", 0))
                         )
-                        # fmt: off
-                        code, headers, body = (
-                            thread.request_handler(  # pylint: disable=not-callable
-                                method, self.path, headers=self.headers, body=body
-                            )
+                        (
+                            code,
+                            headers,
+                            body,
+                        ) = thread.request_handler(  # pylint: disable=not-callable
+                            method, self.path, headers=self.headers, body=body
                         )
-                        # fmt: on
                         self.send_response(code)
                         for name, value in headers.items():
                             self.send_header(name, value)

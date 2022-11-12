@@ -10,25 +10,27 @@ from scaraplate.config import class_from_str
 from scaraplate.template import TemplateMeta
 
 
-def pytest_collect_file(parent, path):
+def pytest_collect_file(parent, file_path):
     # https://docs.pytest.org/en/latest/example/nonpython.html
-    if path.ext == ".yml" and path.basename.startswith("test"):
-        return YamlFile(path, parent)
+    if file_path.suffix == ".yml" and file_path.name.startswith("test"):
+        return YamlFile.from_parent(parent, path=file_path)
 
 
 class YamlFile(pytest.File):
     def collect(self):
-        spec = yaml.safe_load(self.fspath.open())
+        spec = yaml.safe_load(self.path.open())
         strategy = spec["strategy"]
         testcases = spec["testcases"]
 
         for testcase in testcases:
-            yield YamlItem(testcase["name"], self, strategy, testcase)
+            yield YamlItem.from_parent(
+                self, name=testcase["name"], strategy=strategy, testcase=testcase
+            )
 
 
 class YamlItem(pytest.Item):
-    def __init__(self, name, parent, strategy, testcase):
-        super().__init__(name, parent)
+    def __init__(self, *, strategy, testcase, **kwargs):
+        super().__init__(**kwargs)
         self.strategy = strategy
         self.testcase = testcase
 
@@ -64,7 +66,7 @@ def run_strategy_test(
 
     template_contents = io.BytesIO(template.encode())
 
-    raises_cls = class_from_str(raises) if raises is not None else None
+    raises_cls: Optional[Type] = class_from_str(raises) if raises is not None else None
 
     with ExitStack() as stack:
         if raises_cls is not None:

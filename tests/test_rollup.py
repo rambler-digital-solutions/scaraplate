@@ -73,10 +73,8 @@ strategies_mapping:
 
         with open((target_project_path / "sense_vars"), "rt") as f:
             assert json.load(f) == {
-                # fmt: off
                 "_template": "template",
                 "project_dest": "test",
-                # fmt: on
             }
 
 

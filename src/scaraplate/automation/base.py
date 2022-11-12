@@ -7,7 +7,6 @@ from typing import ContextManager, Mapping, Optional
 from scaraplate.rollup import rollup
 from scaraplate.template import TemplateMeta
 
-
 logger = logging.getLogger("scaraplate")
 
 __all__ = ("TemplateVCS", "ProjectVCS", "automatic_rollup")

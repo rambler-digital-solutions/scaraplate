@@ -8,7 +8,6 @@ from .automation import (
 from .rollup import InvalidScaraplateTemplateError, rollup
 from .template import TemplateMeta
 
-
 __all__ = (
     "GitCloneProjectVCS",
     "GitCloneTemplateVCS",

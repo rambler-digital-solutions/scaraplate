@@ -87,7 +87,7 @@ format-black:
 
 .PHONY: format-isort
 format-isort:
-	@isort -rc ${LINT_TARGET}
+	@isort ${LINT_TARGET}
 
 
 .PHONY: help
@@ -122,7 +122,7 @@ lint-flake8:
 
 .PHONY: lint-isort
 lint-isort:
-	@${PYTHON} -m isort.main -df -c -rc ${LINT_TARGET}
+	@${PYTHON} -m isort --check-only ${LINT_TARGET}
 
 
 .PHONY: lint-mypy
@@ -157,7 +157,7 @@ report-pylint:
 .PHONY: test
 # target: test - Run tests with coverage
 test:
-	@${PYTHON} -m coverage run -m py.test
+	@${PYTHON} -m coverage run -m pytest
 	@${PYTHON} -m coverage report
 
 
