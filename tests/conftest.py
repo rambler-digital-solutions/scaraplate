@@ -31,10 +31,12 @@ def init_git_and_commit(call_git):
 def call_git():
     def _call_git(shell_cmd: str, cwd: Path) -> str:
         env = {
-            "USERNAME": "tests_scaraplate",
-            "EMAIL": "pytest@scaraplate",
-            "PATH": os.getenv("PATH", os.defpath),
+            "GIT_AUTHOR_EMAIL": "pytest@scaraplate",
+            "GIT_AUTHOR_NAME": "tests_scaraplate",
+            "GIT_COMMITTER_EMAIL": "pytest@scaraplate",
+            "GIT_COMMITTER_NAME": "tests_scaraplate",
             "GIT_CONFIG_NOSYSTEM": "1",
+            "PATH": os.getenv("PATH", os.defpath),
         }
         out = subprocess.run(
             shell_cmd,

@@ -279,8 +279,12 @@ class Git:
             env={
                 # git would fail if there's no `user.email` in the local
                 # git config, even if `--author` is specified.
-                "USERNAME": "scaraplate",
                 "EMAIL": "scaraplate@localhost",
+                "GIT_AUTHOR_EMAIL": "scaraplate@localhost",
+                "GIT_AUTHOR_NAME": "scaraplate",
+                "GIT_COMMITTER_EMAIL": "scaraplate@localhost",
+                "GIT_COMMITTER_NAME": "scaraplate",
+                "USERNAME": "scaraplate",
             },
         )
 
