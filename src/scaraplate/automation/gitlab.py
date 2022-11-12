@@ -263,6 +263,7 @@ class GitLabMRProjectVCS(ProjectVCS):
         gitlab_project = client.projects.get(full_project_name)
         project_url = gitlab_project_url(gitlab_url, full_project_name)
         user = client.user
+        assert user is not None
         commit_author = commit_author or f"{user.name} <{user.email}>"
 
         # pylint wants mandatory arguments to be passed explicitly:
