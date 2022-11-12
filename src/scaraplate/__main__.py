@@ -72,4 +72,4 @@ def rollup(
 
 
 if __name__ == "__main__":
-    main(prog_name="scaraplate")  # pylint: disable=unexpected-keyword-arg
+    main(prog_name="scaraplate")

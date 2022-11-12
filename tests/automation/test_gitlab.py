@@ -142,7 +142,7 @@ def test_gitlab_mr_project(
             if mr_exists or mr_exists is None
             else [
                 (
-                    "POST",  # type: ignore
+                    "POST",
                     "/api/v4/projects/42/merge_requests",
                     {"id": 99, "iid": 99},
                     lambda body: mr_body_checker(body),

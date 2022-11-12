@@ -617,7 +617,7 @@ class ConfigParserMerge(Strategy):
         return io.BytesIO(new_contents)
 
     def _sorted_configparser(self, parser: ConfigParser) -> ConfigParser:
-        out = ConfigParser(dict_type=OrderedDict)  # type: ignore
+        out = ConfigParser(dict_type=OrderedDict)
 
         # `out.read_dict(parser)` might not work here as expected: the keys from
         # the `[DEFAULT]` section would be set in *all* sections instead of
@@ -711,7 +711,7 @@ class SetupCfgMerge(ConfigParserMerge):
               sections containing the keys with requirements.
             + ``keys`` (required) -- a PCRE pattern matching keys
               in the matched sections.
-        """  # type: ignore
+        """
         )
 
         merge_requirements = fields.Nested(ConfigKeySchema, many=True, required=True)

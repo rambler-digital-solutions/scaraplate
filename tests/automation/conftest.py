@@ -120,11 +120,7 @@ class HttpServerThread(threading.Thread):
                         body = self.rfile.read(
                             int(self.headers.get("content-length", 0))
                         )
-                        (
-                            code,
-                            headers,
-                            body,
-                        ) = thread.request_handler(  # pylint: disable=not-callable
+                        (code, headers, body,) = thread.request_handler(
                             method, self.path, headers=self.headers, body=body
                         )
                         self.send_response(code)
@@ -159,7 +155,7 @@ class HttpServerThread(threading.Thread):
             )
 
             # don't hang if there're some open connections
-            self.http_server.daemon_threads = True  # type: ignore
+            self.http_server.daemon_threads = True
 
             self.server_port = self.http_server.server_address[1]
         except Exception as e:  # pragma: no cover
