@@ -120,21 +120,23 @@ class GitLabMRProjectVCS(ProjectVCS):
     def is_dirty(self) -> bool:
         return self._git_clone.is_dirty()
 
-    def commit_changes(self, template_meta: TemplateMeta) -> None:
-        self._git_clone.commit_changes(template_meta)
+    def commit_changes(self, template_meta: TemplateMeta) -> bool:
+        commit_created = self._git_clone.commit_changes(template_meta)
 
         if self._git_clone.changes_branch == self._gitlab_project.default_branch:
             logger.info(
                 "Skipping MR creation step as `changes_branch` and `default_branch` "
                 "are the same, i.e. the changes are already in the target branch."
             )
+            return commit_created
         else:
-            self.create_merge_request(
+            mr_created = self.create_merge_request(
                 title=self.format_merge_request_title(template_meta=template_meta),
                 description=self.format_merge_request_description(
                     template_meta=template_meta
                 ),
             )
+            return mr_created or commit_created
 
     def format_merge_request_title(self, *, template_meta: TemplateMeta) -> str:
         return self.mr_title_template.format(
@@ -149,11 +151,11 @@ class GitLabMRProjectVCS(ProjectVCS):
             template_meta=template_meta,
         )
 
-    def create_merge_request(self, *, title: str, description: str) -> None:
+    def create_merge_request(self, *, title: str, description: str) -> bool:
         existing_mr = self.get_merge_request()
         if existing_mr is not None:
             logger.info(f"Skipping MR creation as it already exists: {existing_mr!r}")
-            return
+            return False
 
         self._gitlab_project.mergerequests.create(
             {
@@ -164,6 +166,7 @@ class GitLabMRProjectVCS(ProjectVCS):
                 "title": title,
             }
         )
+        return True
 
     def get_merge_request(self):
         merge_requests = self._gitlab_project.mergerequests.list(

@@ -72,7 +72,7 @@ def test_automatic_rollup(
         f"git rev-parse --verify {clone_ref or 'master'}", cwd=template_bare_git_repo
     )
 
-    automatic_rollup(
+    result = automatic_rollup(
         template_vcs_ctx=GitCloneTemplateVCS.clone(
             clone_url=str(template_bare_git_repo),  # a clonable remote URL
             clone_ref=clone_ref,
@@ -87,6 +87,7 @@ def test_automatic_rollup(
         ),
         extra_context={"key1": "value1", "key2": "value2"},
     )
+    assert result
 
     target_branch_commit_hash = call_git(
         f"git rev-parse --verify {target_branch}", cwd=project_bare_git_repo
@@ -102,7 +103,7 @@ def test_automatic_rollup(
     assert template_commit_hash in commit_message
 
     # Apply again (this time we expect no changes)
-    automatic_rollup(
+    result = automatic_rollup(
         template_vcs_ctx=GitCloneTemplateVCS.clone(
             clone_url=str(template_bare_git_repo),  # a clonable remote URL
             clone_ref=clone_ref,
@@ -117,6 +118,7 @@ def test_automatic_rollup(
         ),
         extra_context={"key1": "value1", "key2": "value2"},
     )
+    assert not result
 
     target_branch_commit_hash_2 = call_git(
         f"git rev-parse --verify {target_branch}", cwd=project_bare_git_repo

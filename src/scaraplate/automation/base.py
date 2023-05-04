@@ -17,7 +17,7 @@ def automatic_rollup(
     template_vcs_ctx: ContextManager["TemplateVCS"],
     project_vcs_ctx: ContextManager["ProjectVCS"],
     extra_context: Optional[Mapping[str, str]] = None
-) -> None:
+) -> bool:
     """The main function of the automated rollup implementation.
 
     This function accepts two context managers, which should return
@@ -35,6 +35,9 @@ def automatic_rollup(
     :meth:`.ProjectVCS.is_dirty`), they will be committed by calling
     :meth:`.ProjectVCS.commit_changes`.
 
+    :returns: True if the target project contains any
+              changes and commit created, else False
+    :rtype: bool
     .. versionadded:: 0.2
     """
 
@@ -55,11 +58,12 @@ def automatic_rollup(
                 "scaraplate rollup didn't change anything -- the project "
                 "is in sync with template"
             )
-            return
+            return False
 
         logger.info("scaraplate rollup produced some changes -- committing them...")
-        project_vcs.commit_changes(template_vcs.template_meta)
+        commit_result = project_vcs.commit_changes(template_vcs.template_meta)
         logger.info("scaraplate changes have been committed successfully")
+    return commit_result
 
 
 class TemplateVCS(abc.ABC):
@@ -107,7 +111,7 @@ class ProjectVCS(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def commit_changes(self, template_meta: TemplateMeta) -> None:
+    def commit_changes(self, template_meta: TemplateMeta) -> bool:
         """Commit the changes made to the project. This method is
         responsible for delivering the changes back to the place
         the project was retrieved from. For example, if the project
@@ -117,5 +121,9 @@ class ProjectVCS(abc.ABC):
 
         This method will be called only if :meth:`.ProjectVCS.is_dirty`
         has returned True.
+
+        :returns: True if the target project contains any
+                  changes and commit created, else False
+        :rtype: bool
         """
         pass

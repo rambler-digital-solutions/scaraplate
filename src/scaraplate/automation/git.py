@@ -131,7 +131,7 @@ class GitCloneProjectVCS(ProjectVCS):
     def is_dirty(self) -> bool:
         return self._git.is_dirty()
 
-    def commit_changes(self, template_meta: TemplateMeta) -> None:
+    def commit_changes(self, template_meta: TemplateMeta) -> bool:
         assert self.is_dirty()
 
         remote_branch = self._git.remote_ref(self.changes_branch)
@@ -147,6 +147,7 @@ class GitCloneProjectVCS(ProjectVCS):
 
         if not self._git.is_existing_ref(remote_branch):
             self._git.push(self.changes_branch)
+            return True
         else:
             # A branch with updates already exists in the remote.
 
@@ -155,6 +156,7 @@ class GitCloneProjectVCS(ProjectVCS):
                 # so essentially the created commit forms a linear history.
                 # No need for any diffs here, we just need to push that.
                 self._git.push(self.changes_branch)
+                return True
             else:
                 # The two branches have diverged, we need to compare them:
                 changes: bool = not self._git.are_one_commit_diffs_equal(
@@ -168,12 +170,14 @@ class GitCloneProjectVCS(ProjectVCS):
                     # silently updating the old MR.
                     self._git.push_branch_delete(self.changes_branch)
                     self._git.push(self.changes_branch)
+                    return True
                 else:
                     logger.info(
                         "scaraplate did update the project, but there's "
                         "an already existing branch in remote which diff "
                         "is equal to the just produced changes"
                     )
+            return False
 
         # Now we should ensure that a Pull Request exists for
         # the `self.changes_branch`, but this class is designed to be agnostic
