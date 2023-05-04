@@ -17,7 +17,7 @@ def automatic_rollup(
     template_vcs_ctx: ContextManager["TemplateVCS"],
     project_vcs_ctx: ContextManager["ProjectVCS"],
     extra_context: Optional[Mapping[str, str]] = None
-) -> None:
+) -> bool:
     """The main function of the automated rollup implementation.
 
     This function accepts two context managers, which should return
@@ -55,11 +55,12 @@ def automatic_rollup(
                 "scaraplate rollup didn't change anything -- the project "
                 "is in sync with template"
             )
-            return
+            return False
 
         logger.info("scaraplate rollup produced some changes -- committing them...")
         project_vcs.commit_changes(template_vcs.template_meta)
         logger.info("scaraplate changes have been committed successfully")
+        return True
 
 
 class TemplateVCS(abc.ABC):
