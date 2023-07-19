@@ -85,8 +85,8 @@ def rollup(
         cookiecutter_config = cookiecutter_config_path / "cookiecutterrc.yaml"
         cookiecutter_config.write_text(
             f"""
-cookiecutters_dir: "{cookiecutter_config_path / 'cookiecutters'}"
-replay_dir: "{cookiecutter_config_path / 'replay'}"
+cookiecutters_dir: "{(cookiecutter_config_path.resolve() / 'cookiecutters').as_posix()}"
+replay_dir: "{(cookiecutter_config_path.resolve() / 'replay').as_posix()}"
 """
         )
 
