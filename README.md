@@ -6,7 +6,7 @@
 [![Licensed under MIT][license-badge]][license-link]
 [![Code style: black][black-badge]][black-link]
 
-[gha-badge]: https://img.shields.io/github/workflow/status/rambler-digital-solutions/scaraplate/CI
+[gha-badge]: https://img.shields.io/github/actions/workflow/status/rambler-digital-solutions/scaraplate/ci.yml?branch=main
 [gha-link]: https://github.com/rambler-digital-solutions/scaraplate/actions
 [pypi-badge]: https://img.shields.io/pypi/v/scaraplate.svg
 [pypi-link]: https://pypi.org/project/scaraplate/
