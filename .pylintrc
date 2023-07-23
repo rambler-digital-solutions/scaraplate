@@ -39,9 +39,6 @@ min-public-methods = 2
 [ELIF]
 max-nested-blocks = 5
 
-[EXCEPTIONS]
-overgeneral-exceptions = Exception
-
 [FORMAT]
 expected-line-ending-format =
 ignore-long-lines = ^\s*(# )?<?https?://\S+>?$

@@ -76,6 +76,7 @@ strategies_mapping:
         with open((target_project_path / "sense_vars"), "rt") as f:
             assert json.load(f) == {
                 "_output_dir": ANY,
+                "_repo_dir": ANY,
                 "_template": "template",
                 "project_dest": "test",
             }
@@ -115,6 +116,7 @@ strategies_mapping: {}
     )
     assert (target_project_path / ".scaraplate.conf").read_text() == (
         """[cookiecutter_context]
+_repo_dir = template
 _template = template
 project_dest = test
 removed_var = 42
@@ -132,6 +134,7 @@ removed_var = 42
     )
     assert (target_project_path / ".scaraplate.conf").read_text() == (
         """[cookiecutter_context]
+_repo_dir = template
 _template = template
 added_var = 24
 project_dest = test
@@ -207,6 +210,7 @@ strategies_mapping: {}
     with open((target_project_path / "sense_vars"), "rt") as f:
         assert json.load(f) == {
             "_output_dir": ANY,
+            "_repo_dir": ANY,
             "_template": "template",
             "project_dest": "test",
             "key1": "initial1",
@@ -223,6 +227,7 @@ strategies_mapping: {}
     with open((target_project_path / "sense_vars"), "rt") as f:
         assert json.load(f) == {
             "_output_dir": ANY,
+            "_repo_dir": ANY,
             "_template": "template",
             "project_dest": "test",
             "key1": "second1",

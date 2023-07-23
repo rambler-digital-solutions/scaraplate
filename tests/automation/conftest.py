@@ -8,6 +8,12 @@ from typing import Any, Callable, List, Optional
 import pytest
 
 
+def pytest_configure(config):
+    config.addinivalue_line(
+        "markers", "template_with_sense_vars: write cookiecutter context to a file"
+    )
+
+
 def convert_git_repo_to_bare(call_git, *, cwd: Path) -> None:
     """Git bare repo is a git repo without a working copy. `git clone`
     can clone these repos my simply pointing at their location in the local
@@ -123,7 +129,11 @@ class HttpServerThread(threading.Thread):
                         body = self.rfile.read(
                             int(self.headers.get("content-length", 0))
                         )
-                        (code, headers, body,) = thread.request_handler(
+                        (
+                            code,
+                            headers,
+                            body,
+                        ) = thread.request_handler(
                             method, self.path, headers=self.headers, body=body
                         )
                         self.send_response(code)

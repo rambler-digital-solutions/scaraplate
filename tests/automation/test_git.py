@@ -213,6 +213,7 @@ def test_automatic_rollup_preserves_template_dirname(
 
     assert json.loads(cookiecutter_context_text) == {
         "_output_dir": ANY,
+        "_repo_dir": ANY,
         "_template": monorepo_inner_path if monorepo_inner_path else "remote_template",
         "project_dest": "remote_project",
         "key1": "value1",

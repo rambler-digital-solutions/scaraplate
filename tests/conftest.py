@@ -2,6 +2,7 @@ import os
 import subprocess
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -27,6 +28,20 @@ def init_git_and_commit(call_git):
     return _init_git_and_commit
 
 
+@pytest.fixture(scope="session", autouse=True)
+def mock_git_env():
+    os.environ.pop("SSH_AUTH_SOCK", None)
+    with patch.dict(
+        os.environ,
+        {
+            "GIT_CONFIG_NOSYSTEM": "1",
+            "GIT_CONFIG_GLOBAL": "",
+            "GIT_CONFIG_SYSTEM": "",
+        },
+    ):
+        yield
+
+
 @pytest.fixture
 def call_git():
     def _call_git(shell_cmd: str, cwd: Path) -> str:
@@ -35,7 +50,6 @@ def call_git():
             "GIT_AUTHOR_NAME": "tests_scaraplate",
             "GIT_COMMITTER_EMAIL": "pytest@scaraplate",
             "GIT_COMMITTER_NAME": "tests_scaraplate",
-            "GIT_CONFIG_NOSYSTEM": "1",
             "PATH": os.getenv("PATH", os.defpath),
         }
         out = subprocess.run(
