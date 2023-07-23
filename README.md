@@ -13,7 +13,7 @@
 [docs-badge]: https://readthedocs.org/projects/scaraplate/badge/?version=latest
 [docs-link]: https://scaraplate.readthedocs.io/
 [license-badge]: https://scaraplate.readthedocs.io/en/latest/_static/license.svg
-[license-link]: https://github.com/rambler-digital-solutions/scaraplate/blob/master/LICENSE
+[license-link]: https://github.com/rambler-digital-solutions/scaraplate/blob/main/LICENSE
 [black-badge]: https://img.shields.io/badge/code%20style-black-000000.svg
 [black-link]: https://github.com/psf/black
 
