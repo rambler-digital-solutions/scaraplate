@@ -1,6 +1,14 @@
 CHANGES
 =======
 
+0.5
+---
+2023-07-23
+
+* Fix windows path handling in rollup (#22).
+  Contributed by john-zielke-snkeos.
+
+
 0.4
 ---
 2022-11-12
