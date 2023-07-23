@@ -71,7 +71,7 @@ Creating a new project from the template
     python_package [myproject]:
     metadata_name [myproject]:
     metadata_author: Kostya Esmukov
-    metadata_author_email: kostya@esmukov.ru
+    metadata_author_email: kostya@esmukov.net
     metadata_description: My example project
     metadata_long_description [file: README.md]:
     metadata_url [https://github.com/rambler-digital-solutions/myproject]:
@@ -113,7 +113,7 @@ applied to the inner projects:
     python_package [mymonorepo_innerproject]:
     metadata_name [mymonorepo-innerproject]:
     metadata_author: Kostya Esmukov
-    metadata_author_email: kostya@esmukov.ru
+    metadata_author_email: kostya@esmukov.net
     metadata_description: My example project in a monorepo
     metadata_long_description [file: README.md]:
     metadata_url [https://github.com/rambler-digital-solutions/mymonorepo]:
@@ -151,7 +151,7 @@ Updating a project from the template
     {'_template': 'scaraplate-example-template',
      'coverage_fail_under': '90',
      'metadata_author': 'Kostya Esmukov',
-     'metadata_author_email': 'kostya@esmukov.ru',
+     'metadata_author_email': 'kostya@esmukov.net',
      'metadata_description': 'My example project',
      'metadata_long_description': 'file: README.md',
      'metadata_name': 'myproject',
